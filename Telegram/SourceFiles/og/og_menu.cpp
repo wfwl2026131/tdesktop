@@ -10,7 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/object_ptr.h"
 #include "og/og_panel.h"
-#include "rpl/single.h"
+#include <rpl/producer.h>
 #include "settings/settings_common.h"
 #include "ui/layers/box_content.h"
 #include "ui/layers/generic_box.h"
