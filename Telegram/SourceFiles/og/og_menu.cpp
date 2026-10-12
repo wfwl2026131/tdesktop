@@ -9,7 +9,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "og/og_menu.h"
 
 #include "base/object_ptr.h"
+#include "og/og_console.h"
 #include "og/og_panel.h"
+#include "og/og_toolbar.h"
 #include <rpl/producer.h>
 #include "settings/settings_common.h"
 #include "ui/layers/box_content.h"
@@ -55,13 +57,24 @@ void SetupMenuRows(
 		object_ptr<Ui::PlainShadow>(menu),
 		{ 0, st::mainMenuSkip, 0, st::mainMenuSkip });
 
-	const auto workbench = Settings::AddButtonWithIcon(
+	const auto console = Settings::AddButtonWithIcon(
 		menu,
-		rpl::single(QString::fromUtf8("\350\220\245\351\224\200\345\267\245\344\275\234\345\217\260")),
+		rpl::single(QString::fromUtf8("\346\216\247\345\210\266\345\217\260")),
 		st::mainMenuButton,
 		Settings::IconDescriptor{ .icon = &st::menuIconGroups });
-	workbench->setClickedCallback([=] {
-		controller->uiShow()->showBox(Box(OG::FillWorkbenchBox));
+	console->setClickedCallback([=] {
+		controller->uiShow()->showBox(Box([=](not_null<Ui::GenericBox*> box) {
+			OG::FillConsoleBox(box, controller);
+		}));
+	});
+
+	const auto toolbar = Settings::AddButtonWithIcon(
+		menu,
+		rpl::single(QString::fromUtf8("\345\267\245\345\205\267\346\240\217")),
+		st::mainMenuButton,
+		Settings::IconDescriptor{ .icon = &st::menuIconSavedMessages });
+	toolbar->setClickedCallback([=] {
+		controller->uiShow()->showBox(Box(OG::FillToolbarBox));
 	});
 
 	AddM2Row(menu, "\346\211\271\351\207\217\344\270\212\345\217\267", &st::menuIconUserShow, controller);
