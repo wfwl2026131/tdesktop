@@ -39,7 +39,7 @@ struct LicenseRow {
 	const char *value;
 };
 
-constexpr LicenseRow kLicenseRows[] = {
+const LicenseRow kLicenseRows[] = {
 		{"Team", "Officegram\357\274\210M2 \346\216\245 /xxloginv3 team_name\357\274\211"},
 		{"User", "alice\357\274\210\351\235\231\346\200\201\346\240\267\346\235\277 \302\267 \345\275\223\345\211\215\344\274\232\350\257\235\345\217\267\357\274\211"},
 		{"Seat", "200 / \347\275\221\346\240\274 300\357\274\210seat = /get-account-info \345\256\236\346\227\266\345\200\274\357\274\211"},
@@ -53,7 +53,7 @@ struct FeatureRow {
 	const style::icon *icon;
 };
 
-constexpr FeatureRow kFeatures[] = {
+const FeatureRow kFeatures[] = {
 		{"\346\212\242\347\272\242\345\214\205 RedPacket", "\351\235\231\346\200\201\346\240\267\346\235\277 \302\267 features red_packet + /api/_rob_*", &st::menuIconGroups},
 		{"\345\257\271\346\225\262 Cross Trading", "\351\235\231\346\200\201\346\240\267\346\235\277 \302\267 red_packet_stats.json \344\275\231\351\242\235/\345\257\271\346\225\262", &st::menuIconSavedMessages},
 		{"\347\276\244\345\217\221\347\247\201\344\277\241 v2", "\351\235\231\346\200\201\346\240\267\346\235\277 \302\267 mass_send_dm_v2 \344\273\273\345\212\241\351\223\276", &st::menuIconUserShow},
@@ -181,7 +181,7 @@ void FillConsoleBox(
 	mainRaw->addRow(std::move(left), std::move(right));
 
 	AddMockLabel(leftRaw,
-		"\345\212\237\350\203\275\345\210\227\350\241\250\357\274\21022 \351\241\271\357\274\211");
+		"\345\212\237\350\203\275\345\210\227\350\241\250\357\274\210" "22 \351\241\271\357\274\211");
 	for (const auto &feature : kFeatures) {
 		const auto button = Settings::AddButtonWithIcon(
 			leftRaw,
@@ -203,14 +203,14 @@ void FillConsoleBox(
 		object_ptr<Ui::RoundButton>(
 			rightRaw,
 			rpl::single(QString::fromUtf8(
-				"\345\220\257\345\212\250\344\273\273\345\212\241 \302\267 \351\235\231\346\200\201\346\240\267\346\235\277)),
+				"\345\220\257\345\212\250\344\273\273\345\212\241 \302\267 \351\235\231\346\200\201\346\240\267\346\235\277")),
 			st::defaultLightButton),
 		st::boxRowPadding);
 	rightRaw->add(
 		object_ptr<Ui::RoundButton>(
 			rightRaw,
 			rpl::single(QString::fromUtf8(
-				"\345\201\234\346\255\242\344\273\273\345\212\241 \302\267 \351\235\231\346\200\201\346\240\267\346\235\277)),
+				"\345\201\234\346\255\242\344\273\273\345\212\241 \302\267 \351\235\231\346\200\201\346\240\267\346\235\277")),
 			st::defaultLightButton),
 		st::boxRowPadding);
 
