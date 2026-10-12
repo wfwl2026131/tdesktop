@@ -17,8 +17,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/layers/show.h"
 #include "ui/vertical_list.h"
 #include "ui/widgets/shadow.h"
+#include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "styles/style_menu_icons.h"
+#include "styles/style_window.h"
 #include "styles/style_window_main_menu.h"
 
 namespace OG {
