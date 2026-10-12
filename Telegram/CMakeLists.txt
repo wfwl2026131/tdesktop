@@ -2383,6 +2383,16 @@ if (DESKTOP_APP_USE_PACKAGED)
     )
 endif()
 
+nice_target_sources(Telegram ${src_loc}
+PRIVATE
+    og/og_core.cpp
+    og/og_core.h
+    og/og_menu.cpp
+    og/og_menu.h
+    og/og_panel.cpp
+    og/og_panel.h
+)
+
 nice_target_sources(Telegram ${res_loc}
 PRIVATE
     qrc/emoji_1.qrc
