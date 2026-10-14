@@ -54,7 +54,7 @@ void ShowToolBarBox(not_null<Window::SessionController*> controller) {
 			Deep::RightToolBar::kWidth + 2 * st::boxRowPadding.left());
 		box->setTitle(rpl::single(Tr::Lookup("RightToolBar::Title")));
 		box->verticalLayout()->add(
-			object_ptr<Deep::RightToolBar>(box, controller),
+			object_ptr<Deep::RightToolBar>(box.get(), controller),
 			st::boxRowPadding);
 		box->addButton(
 			rpl::single(Tr::Lookup("Common::Close")),

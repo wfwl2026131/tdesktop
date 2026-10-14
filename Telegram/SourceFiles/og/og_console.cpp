@@ -149,7 +149,7 @@ void AddKeyedLabel(
 		not_null<Ui::VerticalLayout*> parent,
 		const char *key) {
 	parent->add(object_ptr<Ui::FlatLabel>(
-		parent,
+		parent.get(),
 		rpl::single(OG::Tr::Lookup(key)),
 		st::defaultFlatLabel));
 }
@@ -203,7 +203,7 @@ void ConsoleWindowQt::buildContent(
 		not_null<Ui::VerticalLayout*> content) {
 	Ui::AddSkip(content);
 
-	const auto license = object_ptr<Ui::TableLayout>(content);
+	const auto license = object_ptr<Ui::TableLayout>(content.get());
 	const auto licenseRaw = license.data();
 	content->add(std::move(license), st::boxRowPadding);
 	for (const auto &row : kLicenseRows) {
@@ -221,13 +221,13 @@ void ConsoleWindowQt::buildContent(
 	Ui::AddSkip(content);
 	AddKeyedLabel(content, kSeatHintKey);
 	Ui::AddSkip(content);
-	content->add(object_ptr<SeatGrid>(content), st::boxRowPadding);
+	content->add(object_ptr<SeatGrid>(content.get()), st::boxRowPadding);
 
 	Ui::AddSkip(content);
 	Ui::AddDivider(content);
 	Ui::AddSkip(content);
 
-	const auto main = object_ptr<Ui::TableLayout>(content);
+	const auto main = object_ptr<Ui::TableLayout>(content.get());
 	const auto mainRaw = main.data();
 	content->add(std::move(main), st::boxRowPadding);
 	auto left = object_ptr<Ui::VerticalLayout>(mainRaw);
@@ -278,7 +278,7 @@ void ConsoleWindowQt::buildContent(
 	Ui::AddSkip(content);
 	const auto close = content->add(
 		object_ptr<Ui::RoundButton>(
-			content,
+			content.get(),
 			rpl::single(OG::Tr::Lookup(kCloseKey)),
 			st::defaultLightButton),
 		st::boxRowPadding);

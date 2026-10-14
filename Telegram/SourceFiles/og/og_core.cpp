@@ -22,7 +22,7 @@ QString Config::serverBase() {
 }
 
 QString Config::languageCode() {
-	if (const auto overrideLanguage = qEnvironmentVariable("OG_DEEP_LANG");
+	if (const auto overrideLanguage = QString::fromLocal8Bit(qgetenv("OG_DEEP_LANG"));
 		!overrideLanguage.isEmpty()) {
 		return overrideLanguage;
 	}

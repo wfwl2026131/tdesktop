@@ -10,13 +10,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/object_ptr.h"
 #include "base/required.h"
+#include "ui/rp_widget.h"
 
 #include <vector>
 
 namespace Ui {
 class FlatLabel;
 class RoundButton;
-class RpWidget;
 } // namespace Ui
 
 namespace Window {

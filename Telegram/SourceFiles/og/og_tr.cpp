@@ -42,26 +42,25 @@ void Start() {
 
 	const auto requested = Config::languageCode();
 	const auto primary = ResourceName(requested);
-	qDebug("Attempting to load Deep translations from: %s", qPrintable(primary));
+	qDebug() << "Attempting to load Deep translations from:" << primary;
 	if (LoadInto(gDeep, requested)) {
 		QCoreApplication::installTranslator(gDeep);
 		gLanguage = requested;
-		qDebug("Deep translations loaded from: %s", qPrintable(primary));
+		qDebug() << "Deep translations loaded from:" << primary;
 		return;
 	}
 
-	qDebug(
-		"Failed to load Deep translations for language: %s - trying English fallback",
-		qPrintable(requested));
+	qDebug() << "Failed to load Deep translations for language:"
+		<< requested << "- trying English fallback";
 	const auto fallback = ResourceName(QString::fromLatin1("en"));
-	qDebug("Attempting fallback load from: %s", qPrintable(fallback));
+	qDebug() << "Attempting fallback load from:" << fallback;
 	if (LoadInto(gDeep, QString::fromLatin1("en"))) {
 		QCoreApplication::installTranslator(gDeep);
 		gLanguage = QString::fromLatin1("en");
 		return;
 	}
 
-	qDebug("CRITICAL: Failed to load Deep translations");
+	qDebug() << "CRITICAL: Failed to load Deep translations";
 	// The English source strings in Lookup() call sites stay in place, so the
 	// interface still renders - the same last step the reference logs before
 	// it keeps running.
