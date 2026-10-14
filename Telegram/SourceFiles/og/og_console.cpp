@@ -203,7 +203,7 @@ void ConsoleWindowQt::buildContent(
 		not_null<Ui::VerticalLayout*> content) {
 	Ui::AddSkip(content);
 
-	const auto license = object_ptr<Ui::TableLayout>(content.get());
+	auto license = object_ptr<Ui::TableLayout>(content.get());
 	const auto licenseRaw = license.data();
 	content->add(std::move(license), st::boxRowPadding);
 	for (const auto &row : kLicenseRows) {
@@ -227,7 +227,7 @@ void ConsoleWindowQt::buildContent(
 	Ui::AddDivider(content);
 	Ui::AddSkip(content);
 
-	const auto main = object_ptr<Ui::TableLayout>(content.get());
+	auto main = object_ptr<Ui::TableLayout>(content.get());
 	const auto mainRaw = main.data();
 	content->add(std::move(main), st::boxRowPadding);
 	auto left = object_ptr<Ui::VerticalLayout>(mainRaw);
