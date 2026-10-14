@@ -38,6 +38,7 @@ class WarningWidget;
 namespace Ui {
 class LinkButton;
 class BoxContent;
+class IconButton;
 class LayerStackWidget;
 } // namespace Ui
 
@@ -145,6 +146,10 @@ private:
 	base::unique_qptr<Ui::LayerStackWidget> _layer;
 	rpl::variable<bool> _boxShown = false;
 	object_ptr<Window::MediaPreviewWidget> _mediaPreview = { nullptr };
+
+	// M2 top-right buttons of the reference client (Console / Toolbar).
+	object_ptr<Ui::IconButton> _ogConsoleButton = { nullptr };
+	object_ptr<Ui::IconButton> _ogToolbarButton = { nullptr };
 
 	object_ptr<Window::Theme::WarningWidget> _testingThemeWarning = { nullptr };
 

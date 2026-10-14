@@ -283,11 +283,19 @@ MainWidget::MainWidget(
 , _sideShadow(_dialogs
 	? base::make_unique_q<Ui::PlainShadow>(this)
 	: nullptr)
+, _ogRightBar(this, _controller)
+, _ogRightBarWidth(Deep::RightToolBar::kWidth)
 , _playerPlaylist(this, _controller)
+, _ogSeatBar(this)
 , _changelogs(Core::Changelogs::Create(&controller->session())) {
 	if (_dialogs) {
 		setupConnectingWidget();
 	}
+
+	// M2: MainWidget exists only after login, so showing the two docks here
+	// equals "always on after login".
+	_ogRightBar->show();
+	_ogSeatBar->show();
 
 	_history->cancelRequests(
 	) | rpl::on_next([=] {
@@ -2558,7 +2566,10 @@ void MainWidget::paintEvent(QPaintEvent *e) {
 }
 
 int MainWidget::getMainSectionTop() const {
-	return _callTopBarHeight + _exportTopBarHeight + _playerHeight;
+	return _ogSeatBarHeight
+		+ _callTopBarHeight
+		+ _exportTopBarHeight
+		+ _playerHeight;
 }
 
 int MainWidget::getThirdSectionTop() const {
@@ -2668,6 +2679,14 @@ void MainWidget::updateMainSectionShown() {
 	_controller->setMainSectionShown(_mainSection || _history->peer());
 }
 
+void MainWidget::toggleOgRightBar() {
+	if (!_ogRightBar || isOneColumn()) {
+		return;
+	}
+	_ogRightBar->setVisible(_ogRightBar->isHidden());
+	updateControlsGeometry();
+}
+
 void MainWidget::updateControlsGeometry() {
 	if (!width()) {
 		return;
@@ -2726,17 +2745,28 @@ void MainWidget::updateControlsGeometry() {
 		? width()
 		: 0;
 	if (isOneColumn()) {
+		if (_ogRightBar) {
+			_ogRightBar->hide();
+		}
+		if (_ogSeatBar) {
+			_ogSeatBar->setGeometry(0, 0, dialogsWidth, _ogSeatBarHeight);
+			_ogSeatBar->raise();
+		}
 		if (_callTopBar) {
 			_callTopBar->resizeToWidth(dialogsWidth);
-			_callTopBar->moveToLeft(0, 0);
+			_callTopBar->moveToLeft(0, _ogSeatBarHeight);
 		}
 		if (_exportTopBar) {
 			_exportTopBar->resizeToWidth(dialogsWidth);
-			_exportTopBar->moveToLeft(0, _callTopBarHeight);
+			_exportTopBar->moveToLeft(
+				0,
+				_ogSeatBarHeight + _callTopBarHeight);
 		}
 		if (_player) {
 			_player->resizeToWidth(dialogsWidth);
-			_player->moveToLeft(0, _callTopBarHeight + _exportTopBarHeight);
+			_player->moveToLeft(
+				0,
+				_ogSeatBarHeight + _callTopBarHeight + _exportTopBarHeight);
 		}
 		const auto mainSectionGeometry = QRect(
 			0,
@@ -2753,11 +2783,14 @@ void MainWidget::updateControlsGeometry() {
 			_contentScrollAddToY);
 		if (_hider) _hider->setGeometry(0, 0, dialogsWidth, height());
 	} else {
+		const auto ogRight = (_ogRightBar && !_ogRightBar->isHidden())
+			? _ogRightBarWidth
+			: 0;
 		auto thirdSectionWidth = _thirdSection ? _thirdColumnWidth : 0;
 		if (_thirdSection) {
 			auto thirdSectionTop = getThirdSectionTop();
 			_thirdSection->setGeometry(
-				width() - thirdSectionWidth,
+				width() - ogRight - thirdSectionWidth,
 				thirdSectionTop,
 				thirdSectionWidth,
 				height() - thirdSectionTop);
@@ -2779,27 +2812,45 @@ void MainWidget::updateControlsGeometry() {
 		}
 		if (_thirdShadow) {
 			_thirdShadow->setGeometryToLeft(
-				width() - thirdSectionWidth - st::lineWidth,
+				width() - ogRight - thirdSectionWidth - st::lineWidth,
 				shadowTop,
 				st::lineWidth,
 				shadowHeight);
 		}
-		const auto mainSectionWidth = width()
+		auto mainSectionWidth = width()
 			- dialogsWidth
-			- thirdSectionWidth;
+			- thirdSectionWidth
+			- ogRight;
+		if (mainSectionWidth < 0) {
+			mainSectionWidth = 0;
+		}
+		if (_ogRightBar && ogRight) {
+			_ogRightBar->setGeometry(width() - ogRight, 0, ogRight, height());
+			_ogRightBar->raise();
+		}
+		if (_ogSeatBar) {
+			_ogSeatBar->setGeometry(
+				dialogsWidth,
+				0,
+				mainSectionWidth,
+				_ogSeatBarHeight);
+			_ogSeatBar->raise();
+		}
 		if (_callTopBar) {
 			_callTopBar->resizeToWidth(mainSectionWidth);
-			_callTopBar->moveToLeft(dialogsWidth, 0);
+			_callTopBar->moveToLeft(dialogsWidth, _ogSeatBarHeight);
 		}
 		if (_exportTopBar) {
 			_exportTopBar->resizeToWidth(mainSectionWidth);
-			_exportTopBar->moveToLeft(dialogsWidth, _callTopBarHeight);
+			_exportTopBar->moveToLeft(
+				dialogsWidth,
+				_ogSeatBarHeight + _callTopBarHeight);
 		}
 		if (_player) {
 			_player->resizeToWidth(mainSectionWidth);
 			_player->moveToLeft(
 				dialogsWidth,
-				_callTopBarHeight + _exportTopBarHeight);
+				_ogSeatBarHeight + _callTopBarHeight + _exportTopBarHeight);
 		}
 		_history->setGeometryWithTopMoved(QRect(
 			dialogsWidth,

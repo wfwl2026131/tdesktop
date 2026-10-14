@@ -10,6 +10,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/weak_ptr.h"
 #include "media/player/media_player_float.h"
 #include "mtproto/sender.h"
+#include "og/og_right_toolbar.h"
+#include "og/og_seat_bar.h"
 
 class HistoryWidget;
 class StackItem;
@@ -229,6 +231,7 @@ public:
 
 	void dialogsCancelled();
 	void toggleFiltersMenu(bool value) const;
+	void toggleOgRightBar();
 
 private:
 	void paintEvent(QPaintEvent *e) override;
@@ -359,6 +362,10 @@ private:
 	object_ptr<Ui::ResizeArea> _firstColumnResizeArea = { nullptr };
 	object_ptr<Ui::ResizeArea> _thirdColumnResizeArea = { nullptr };
 
+	// M2 right dock of the reference client, always-on after login.
+	object_ptr<Deep::RightToolBar> _ogRightBar = { nullptr };
+	int _ogRightBarWidth = 0;
+
 	base::weak_ptr<Calls::Call> _currentCall;
 	base::weak_ptr<Calls::GroupCall> _currentGroupCall;
 	rpl::lifetime _currentCallLifetime;
@@ -375,6 +382,10 @@ private:
 
 	base::unique_qptr<Window::HistoryHider> _hider;
 	std::vector<std::unique_ptr<StackItem>> _stack;
+
+	// M2 always-on seat strip above the main section.
+	object_ptr<OG::SeatBar> _ogSeatBar = { nullptr };
+	int _ogSeatBarHeight = OG::SeatBar::kHeight;
 
 	int _playerHeight = 0;
 	int _callTopBarHeight = 0;

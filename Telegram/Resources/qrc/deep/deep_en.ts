@@ -239,6 +239,13 @@
     </message>
 </context>
 <context>
+    <name>SeatBar</name>
+    <message>
+        <source>Seats</source>
+        <translation>Seats</translation>
+    </message>
+</context>
+<context>
     <name>Common</name>
     <message>
         <source>Close</source>

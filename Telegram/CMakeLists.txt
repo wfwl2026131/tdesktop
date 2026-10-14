@@ -2395,6 +2395,10 @@ PRIVATE
     og/og_panel.h
     og/og_right_toolbar.cpp
     og/og_right_toolbar.h
+    og/og_seat_bar.cpp
+    og/og_seat_bar.h
+    og/og_seat_grid.cpp
+    og/og_seat_grid.h
     og/og_tr.cpp
     og/og_tr.h
 )

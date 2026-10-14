@@ -30,6 +30,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_account.h" // Account::sessionValue.
 #include "main/main_domain.h"
 #include "mainwidget.h"
+#include "og/og_console.h"
 #include "ui/boxes/confirm_box.h"
 #include "boxes/connection_box.h"
 #include "storage/storage_account.h"
@@ -47,11 +48,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "window/window_setup_email.h"
 #include "window/window_media_preview.h"
+#include "styles/style_boxes.h"
+#include "styles/style_menu_icons.h"
 #include "styles/style_window.h"
 
 #include <QtGui/QWindow>
 
 namespace {
+
+constexpr auto kOgTopButtonsSkip = 8;
 
 // Code for testing languages is F7-F6-F7-F8
 void FeedLangTestingKey(int key) {
@@ -103,6 +108,24 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 	) | rpl::on_next([=] {
 		Ui::ForceFullRepaint(this);
 	}, lifetime());
+
+	_ogConsoleButton.create(this, st::themesMenuToggle);
+	_ogConsoleButton->setIconOverride(&st::menuIconGroups, &st::menuIconGroups);
+	_ogConsoleButton->setClickedCallback([=] {
+		if (const auto session = sessionController()) {
+			Deep::ConsoleWindowQt::Show(session);
+		}
+	});
+
+	_ogToolbarButton.create(this, st::themesMenuToggle);
+	_ogToolbarButton->setIconOverride(
+		&st::menuIconSavedMessages,
+		&st::menuIconSavedMessages);
+	_ogToolbarButton->setClickedCallback([=] {
+		if (_main) {
+			_main->toggleOgRightBar();
+		}
+	});
 
 	setAttribute(Qt::WA_OpaquePaintEvent);
 }
@@ -772,6 +795,30 @@ void MainWindow::updateControlsGeometry() {
 	if (_layer) _layer->setGeometry(body);
 	if (_mediaPreview) _mediaPreview->setGeometry(body);
 	if (_testingThemeWarning) _testingThemeWarning->setGeometry(body);
+
+	// M2: the reference client's top-right buttons, in the top-right corner of
+	// the content area (bodyWidget(), not the window, which owns the frame).
+	const auto ogShown = (sessionController() != nullptr);
+	if (_ogConsoleButton) {
+		_ogConsoleButton->setVisible(ogShown);
+	}
+	if (_ogToolbarButton) {
+		_ogToolbarButton->setVisible(ogShown);
+	}
+	if (ogShown) {
+		const auto ogTop = bodyWidget()->mapTo(this, QPoint(0, 0)).y()
+			+ kOgTopButtonsSkip;
+		auto ogRight = kOgTopButtonsSkip;
+		if (_ogToolbarButton) {
+			_ogToolbarButton->moveToRight(ogRight, ogTop);
+			_ogToolbarButton->raise();
+			ogRight += _ogToolbarButton->width() + kOgTopButtonsSkip;
+		}
+		if (_ogConsoleButton) {
+			_ogConsoleButton->moveToRight(ogRight, ogTop);
+			_ogConsoleButton->raise();
+		}
+	}
 
 	if (_main) _main->checkMainSectionToLayer();
 }

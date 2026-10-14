@@ -9,10 +9,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "og/og_console.h"
 
 #include "base/object_ptr.h"
+#include "og/og_seat_grid.h"
 #include "og/og_tr.h"
 #include <rpl/producer.h>
 #include "settings/settings_common.h"
-#include "ui/painter.h"
 #include "ui/qt_object_factory.h"
 #include "ui/rp_widget.h"
 #include "ui/vertical_list.h"
@@ -34,11 +34,6 @@ namespace Deep {
 namespace {
 
 constexpr auto kToastDuration = 1500;
-constexpr auto kSeatCols = 50;
-constexpr auto kSeatRows = 6;
-constexpr auto kSeatTotal = kSeatCols * kSeatRows;
-constexpr auto kSeatRowHeight = 34;
-constexpr auto kSeatPadding = 8;
 
 // Keys only - every label goes through the Deep translation data below, so no
 // interface copy is compiled into the fork. English stays as the last
@@ -96,53 +91,6 @@ const FeatureRow kFeatures[] = {
 	{"ConsoleWindowQt::Pointcard Renewal", "agent_user_activate_pointcard", &st::menuIconChannel},
 	{"ConsoleWindowQt::Notice Center", "notice_id", &st::menuIconSavedMessages},
 	{"ConsoleWindowQt::Runtime Log", "console_log", &st::menuIconGroups},
-};
-
-class SeatGrid final : public Ui::RpWidget {
-public:
-	explicit SeatGrid(QWidget *parent)
-	: Ui::RpWidget(parent) {
-	}
-
-	[[nodiscard]] int heightForWidth(int) const override {
-		return kSeatRows * kSeatRowHeight + kSeatPadding;
-	}
-
-protected:
-	void paintEvent(QPaintEvent *e) override {
-		auto p = Painter(this);
-		const auto cell = (width() - 2 * kSeatPadding) / kSeatCols;
-		if (cell < 4) {
-			return;
-		}
-		const auto d = (cell - 4 < 9) ? (cell - 4) : 9;
-		auto font = QFont();
-		font.setPixelSize(9);
-		for (auto i = 0; i != kSeatTotal; ++i) {
-			const auto col = i % kSeatCols;
-			const auto row = i / kSeatCols;
-			const auto x = kSeatPadding + col * cell + (cell - d) / 2;
-			const auto y = kSeatPadding + row * kSeatRowHeight + 10;
-			auto color = QColor(165, 170, 175);
-			if (i < 24) {
-				color = QColor(60, 174, 96);
-			} else if (i >= 200 && i < 204) {
-				color = QColor(220, 80, 80);
-			}
-			p.setPen(Qt::NoPen);
-			p.setBrush(color);
-			p.drawEllipse(x, y, d, d);
-			if ((i % kSeatCols) == 0) {
-				p.setPen(QColor(120, 125, 130));
-				p.setFont(font);
-				p.drawText(
-					kSeatPadding + col * cell,
-					kSeatPadding + row * kSeatRowHeight + 8,
-					QString::number(i + 1));
-			}
-		}
-	}
-
 };
 
 void AddKeyedLabel(
