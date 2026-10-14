@@ -233,6 +233,11 @@ public:
 	void toggleFiltersMenu(bool value) const;
 	void toggleOgRightBar();
 
+	// M2: the width the right dock really reserves right now - 0 while the
+	// user collapsed it, or while the window is too narrow to keep it. The
+	// single decision lives in updateWindowAdaptiveLayout().
+	[[nodiscard]] int ogRightBarWidth() const;
+
 private:
 	void paintEvent(QPaintEvent *e) override;
 	void resizeEvent(QResizeEvent *e) override;
@@ -294,7 +299,6 @@ private:
 
 	int getMainSectionTop() const;
 	int getThirdSectionTop() const;
-	int ogRightBarWidth() const;
 
 	void hideAll();
 	void showAll();
@@ -366,6 +370,12 @@ private:
 	// M2 right dock of the reference client, always-on after login.
 	object_ptr<Deep::RightToolBar> _ogRightBar = { nullptr };
 	int _ogRightBarWidth = 0;
+	// What the user asked for versus what the window width allows. Only
+	// updateWindowAdaptiveLayout() writes _ogDockShown and only
+	// ogRightBarWidth() reads it, so the dependency stays one-way and the
+	// layout cannot oscillate.
+	bool _ogRightBarWanted = true;
+	bool _ogDockShown = true;
 
 	base::weak_ptr<Calls::Call> _currentCall;
 	base::weak_ptr<Calls::GroupCall> _currentGroupCall;

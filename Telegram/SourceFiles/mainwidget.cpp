@@ -2579,13 +2579,16 @@ int MainWidget::getMainSectionTop() const {
 }
 
 int MainWidget::getThirdSectionTop() const {
-	return 0;
+	// M2: the seat strip spans the whole client area now, so the optional
+	// third column starts below it, exactly like the chat history does.
+	return _ogSeatBarHeight;
 }
 
 int MainWidget::ogRightBarWidth() const {
-	// The dock is laid out (and reserves width) only in the multi-column
-	// layouts; the one-column layout hides it in updateControlsGeometry().
-	return (_ogRightBar && !_ogRightBar->isHidden()) ? _ogRightBarWidth : 0;
+	// Whatever the user wants, the dock only takes room when the window is
+	// wide enough for it; that single decision is made once per layout pass
+	// in updateWindowAdaptiveLayout() and only reported here.
+	return _ogDockShown ? _ogRightBarWidth : 0;
 }
 
 void MainWidget::hideAll() {
@@ -2692,10 +2695,13 @@ void MainWidget::updateMainSectionShown() {
 }
 
 void MainWidget::toggleOgRightBar() {
-	if (!_ogRightBar || isOneColumn()) {
+	if (!_ogRightBar) {
 		return;
 	}
-	_ogRightBar->setVisible(_ogRightBar->isHidden());
+	// The dock is available in the one-column layout as well; whether it can
+	// really show is decided by the window width in
+	// updateWindowAdaptiveLayout(), which updateControlsGeometry() calls.
+	_ogRightBarWanted = !_ogRightBarWanted;
 	updateControlsGeometry();
 }
 
@@ -2751,15 +2757,27 @@ void MainWidget::updateControlsGeometry() {
 		_thirdShadow.destroy();
 	}
 	const auto mainSectionTop = getMainSectionTop();
+	// The dock is laid out in the one-column layout as well. Whether it really
+	// shows was decided by the window width in updateWindowAdaptiveLayout()
+	// above, and ogRightBarWidth() reports that single decision.
+	const auto ogRight = ogRightBarWidth();
+	if (_ogRightBar) {
+		_ogRightBar->setVisible(_ogDockShown);
+		if (_ogDockShown) {
+			_ogRightBar->setGeometry(
+				width() - ogRight,
+				_ogSeatBarHeight,
+				ogRight,
+				height() - _ogSeatBarHeight);
+			_ogRightBar->raise();
+		}
+	}
 	auto dialogsWidth = _dialogs
 		? int(base::SafeRound(_a_dialogsWidth.value(_dialogsWidth)))
 		: isOneColumn()
-		? width()
+		? width() - ogRight
 		: 0;
 	if (isOneColumn()) {
-		if (_ogRightBar) {
-			_ogRightBar->hide();
-		}
 		if (_ogSeatBar) {
 			_ogSeatBar->setGeometry(0, 0, dialogsWidth, _ogSeatBarHeight);
 			_ogSeatBar->raise();
@@ -2793,9 +2811,14 @@ void MainWidget::updateControlsGeometry() {
 		_history->setGeometryWithTopMoved(
 			mainSectionGeometry,
 			_contentScrollAddToY);
-		if (_hider) _hider->setGeometry(0, 0, dialogsWidth, height());
+		if (_hider) {
+			_hider->setGeometry(
+				0,
+				_ogSeatBarHeight,
+				dialogsWidth,
+				height() - _ogSeatBarHeight);
+		}
 	} else {
-		const auto ogRight = ogRightBarWidth();
 		auto thirdSectionWidth = _thirdSection ? _thirdColumnWidth : 0;
 		if (_thirdSection) {
 			auto thirdSectionTop = getThirdSectionTop();
@@ -2811,7 +2834,11 @@ void MainWidget::updateControlsGeometry() {
 			accumulate_min(
 				dialogsWidth,
 				width() - st::columnMinimalWidthMain);
-			_dialogs->setGeometryToLeft(0, 0, dialogsWidth, height());
+			_dialogs->setGeometryToLeft(
+				0,
+				_ogSeatBarHeight,
+				dialogsWidth,
+				height() - _ogSeatBarHeight);
 		}
 		if (_sideShadow) {
 			_sideShadow->setGeometryToLeft(
@@ -2834,16 +2861,12 @@ void MainWidget::updateControlsGeometry() {
 		if (mainSectionWidth < 0) {
 			mainSectionWidth = 0;
 		}
-		if (_ogRightBar && ogRight) {
-			_ogRightBar->setGeometry(width() - ogRight, 0, ogRight, height());
-			_ogRightBar->raise();
-		}
 		if (_ogSeatBar) {
-			_ogSeatBar->setGeometry(
-				dialogsWidth,
-				0,
-				mainSectionWidth,
-				_ogSeatBarHeight);
+			// M2: the strip covers the whole client area - the reference draws
+			// it over both the dialogs column and the dock, which give way by
+			// its height below. The dock itself is placed above the branches,
+			// in both layouts.
+			_ogSeatBar->setGeometry(0, 0, width(), _ogSeatBarHeight);
 			_ogSeatBar->raise();
 		}
 		if (_callTopBar) {
@@ -2871,9 +2894,9 @@ void MainWidget::updateControlsGeometry() {
 		if (_hider) {
 			_hider->setGeometryToLeft(
 				dialogsWidth,
-				0,
+				_ogSeatBarHeight,
 				mainSectionWidth,
-				height());
+				height() - _ogSeatBarHeight);
 		}
 	}
 	if (_mainSection) {
@@ -3230,11 +3253,15 @@ void MainWidget::updateWindowAdaptiveLayout() {
 	auto dialogsWidthRatio = Core::App().settings().dialogsWidthRatio(nochat);
 
 	// M2: the always-on right dock reserves its width, so the column gates must
-	// judge the room that is left for the columns. The reservation is a
-	// constant instead of the dock's current visibility, otherwise the choice
-	// would oscillate between the pass that hides the dock and the pass that
-	// shows it again.
-	const auto reserved = _ogRightBarWidth;
+	// judge the room that is left for the columns. Whether the dock takes that
+	// room is decided here and only here - one-way, the width itself never
+	// depends on the decision - so the layout cannot oscillate.
+	const auto dockWanted = _ogRightBarWanted;
+	const auto dockFits = dockWanted
+		&& (layout.bodyWidth - _ogRightBarWidth
+			>= st::columnMinimalWidthLeft);
+	_ogDockShown = dockFits;
+	const auto reserved = dockFits ? _ogRightBarWidth : 0;
 	const auto usableWidth = (layout.bodyWidth > reserved)
 		? (layout.bodyWidth - reserved)
 		: 0;
@@ -3258,9 +3285,11 @@ void MainWidget::updateWindowAdaptiveLayout() {
 			layout.chatWidth = usableWidth - layout.dialogsWidth;
 			dialogsWidthRatio = float64(layout.dialogsWidth) / layout.bodyWidth;
 		}
-	} else if (_dialogs && usableWidth < minimalNormalWidth) {
-		// The dock leaves no room for the normal layout, so the columns give
-		// way to the single column layout (and to the hidden dock in it).
+	} else if (_dialogs && usableWidth < st::columnMinimalWidthLeft) {
+		// Only when not even the minimal chat list fits beside the dock do the
+		// columns give way to the single column layout. With 260..640 usable
+		// pixels the layout stays normal and the main section gets squeezed
+		// instead of the whole chat list disappearing.
 		layout.windowLayout = Window::Adaptive::WindowLayout::OneColumn;
 		layout.thirdWidth = 0;
 		layout.dialogsWidth = layout.chatWidth = layout.bodyWidth;
@@ -3274,10 +3303,15 @@ void MainWidget::updateWindowAdaptiveLayout() {
 		accumulate_min(
 			layout.dialogsWidth,
 			usableWidth - st::columnMinimalWidthMain);
-		accumulate_max(layout.dialogsWidth, 0);
+		// The chat list keeps its own minimal width and the squeezed main
+		// section takes the remainder, which may well be under its minimum.
+		accumulate_max(
+			layout.dialogsWidth,
+			_dialogs ? st::columnMinimalWidthLeft : 0);
 		layout.chatWidth = usableWidth
 			- layout.dialogsWidth
 			- layout.thirdWidth;
+		accumulate_max(layout.chatWidth, 0);
 	}
 
 	// Check if we are going to create the third column and shrink the

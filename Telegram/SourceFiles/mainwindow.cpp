@@ -31,6 +31,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_domain.h"
 #include "mainwidget.h"
 #include "og/og_console.h"
+#include "og/og_seat_bar.h"
 #include "ui/boxes/confirm_box.h"
 #include "boxes/connection_box.h"
 #include "storage/storage_account.h"
@@ -812,13 +813,21 @@ void MainWindow::updateControlsGeometry() {
 		_ogToolbarButton->setVisible(ogShown);
 	}
 	if (ogShown) {
+		// The always-on seat strip owns the top of the client area, so the
+		// buttons drop below it instead of sitting on the first seat row.
+		const auto ogTop = OG::SeatBar::kHeight + kOgTopButtonsSkip;
+		// The dock fills that same band on the right, so the buttons anchor to
+		// the body minus the width the dock really reserves - otherwise they
+		// would cover its rightmost tab and swallow its clicks.
+		const auto dockWidth = _main ? _main->ogRightBarWidth() : 0;
+		const auto ogOuter = bodyWidget()->width() - dockWidth;
 		auto ogRight = kOgTopButtonsSkip;
 		if (_ogToolbarButton) {
-			_ogToolbarButton->moveToRight(ogRight, kOgTopButtonsSkip);
+			_ogToolbarButton->moveToRight(ogRight, ogTop, ogOuter);
 			ogRight += _ogToolbarButton->width() + kOgTopButtonsSkip;
 		}
 		if (_ogConsoleButton) {
-			_ogConsoleButton->moveToRight(ogRight, kOgTopButtonsSkip);
+			_ogConsoleButton->moveToRight(ogRight, ogTop, ogOuter);
 		}
 	}
 
