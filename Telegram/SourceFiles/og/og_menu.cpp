@@ -10,8 +10,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/object_ptr.h"
 #include "og/og_console.h"
-#include "og/og_panel.h"
-#include "og/og_toolbar.h"
+#include "og/og_right_toolbar.h"
+#include "og/og_tr.h"
 #include <rpl/producer.h>
 #include "settings/settings_common.h"
 #include "ui/layers/box_content.h"
@@ -33,19 +33,33 @@ constexpr auto kM2ToastDuration = 1500;
 
 void AddM2Row(
 		not_null<Ui::VerticalLayout*> menu,
-		const char *text,
+		const char *key,
 		const style::icon *icon,
 		not_null<Window::SessionController*> controller) {
 	const auto row = Settings::AddButtonWithIcon(
 		menu,
-		rpl::single(QString::fromUtf8(text)),
+		rpl::single(Tr::Lookup(key)),
 		st::mainMenuButton,
 		Settings::IconDescriptor{ .icon = icon });
 	row->setClickedCallback([=] {
 		controller->window().showToast(
-			QString::fromUtf8("M2 \351\207\214\347\250\213\347\242\221\346\216\245\351\200\232 ogweb \345\220\216\345\256\236\350\243\205"),
+			Tr::Lookup("MainMenu::M2 placeholder"),
 			kM2ToastDuration);
 	});
+}
+
+void ShowToolBarBox(not_null<Window::SessionController*> controller) {
+	controller->uiShow()->showBox(Box([=](not_null<Ui::GenericBox*> box) {
+		box->setWidth(
+			Deep::RightToolBar::kWidth + 2 * st::boxRowPadding.left());
+		box->setTitle(rpl::single(Tr::Lookup("RightToolBar::Title")));
+		box->verticalLayout()->add(
+			object_ptr<Deep::RightToolBar>(box, controller),
+			st::boxRowPadding);
+		box->addButton(
+			rpl::single(Tr::Lookup("Common::Close")),
+			[=] { box->closeBox(); });
+	}));
 }
 
 } // namespace
@@ -53,33 +67,34 @@ void AddM2Row(
 void SetupMenuRows(
 		not_null<Ui::VerticalLayout*> menu,
 		not_null<Window::SessionController*> controller) {
+	// Deep translation data is loaded once, before the first Lookup().
+	Tr::Start();
+
 	menu->add(
 		object_ptr<Ui::PlainShadow>(menu),
 		{ 0, st::mainMenuSkip, 0, st::mainMenuSkip });
 
 	const auto console = Settings::AddButtonWithIcon(
 		menu,
-		rpl::single(QString::fromUtf8("\346\216\247\345\210\266\345\217\260")),
+		rpl::single(Tr::Lookup("MainMenu::Console")),
 		st::mainMenuButton,
 		Settings::IconDescriptor{ .icon = &st::menuIconGroups });
 	console->setClickedCallback([=] {
-		controller->uiShow()->showBox(Box([=](not_null<Ui::GenericBox*> box) {
-			OG::FillConsoleBox(box, controller);
-		}));
+		Deep::ConsoleWindowQt::Show(controller);
 	});
 
 	const auto toolbar = Settings::AddButtonWithIcon(
 		menu,
-		rpl::single(QString::fromUtf8("\345\267\245\345\205\267\346\240\217")),
+		rpl::single(Tr::Lookup("MainMenu::Toolbar")),
 		st::mainMenuButton,
 		Settings::IconDescriptor{ .icon = &st::menuIconSavedMessages });
 	toolbar->setClickedCallback([=] {
-		controller->uiShow()->showBox(Box(OG::FillToolbarBox));
+		ShowToolBarBox(controller);
 	});
 
-	AddM2Row(menu, "\346\211\271\351\207\217\344\270\212\345\217\267", &st::menuIconUserShow, controller);
-	AddM2Row(menu, "AI \345\267\245\345\205\267\351\233\206", &st::menuIconSavedMessages, controller);
-	AddM2Row(menu, "\345\270\255\344\275\215\344\270\216\346\216\210\346\235\203", &st::menuIconChannel, controller);
+	AddM2Row(menu, "MainMenu::Batch Login", &st::menuIconUserShow, controller);
+	AddM2Row(menu, "MainMenu::AI Tools", &st::menuIconSavedMessages, controller);
+	AddM2Row(menu, "MainMenu::Seats And License", &st::menuIconChannel, controller);
 }
 
 } // namespace OG

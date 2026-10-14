@@ -21,4 +21,13 @@ QString Config::serverBase() {
 	return QString::fromUtf8("http://192.168.217.1:8080");
 }
 
+QString Config::languageCode() {
+	if (const auto overrideLanguage = qEnvironmentVariable("OG_DEEP_LANG");
+		!overrideLanguage.isEmpty()) {
+		return overrideLanguage;
+	}
+	// M2 replaces this with the settings item the reference reads.
+	return QString::fromLatin1("en");
+}
+
 } // namespace OG

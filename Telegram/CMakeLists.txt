@@ -2393,12 +2393,15 @@ PRIVATE
     og/og_menu.h
     og/og_panel.cpp
     og/og_panel.h
-    og/og_toolbar.cpp
-    og/og_toolbar.h
+    og/og_right_toolbar.cpp
+    og/og_right_toolbar.h
+    og/og_tr.cpp
+    og/og_tr.h
 )
 
 nice_target_sources(Telegram ${res_loc}
 PRIVATE
+    qrc/deep.qrc
     qrc/emoji_1.qrc
     qrc/emoji_2.qrc
     qrc/emoji_3.qrc

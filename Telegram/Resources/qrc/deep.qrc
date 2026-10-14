@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="/deep/translations">
+    <file alias="deep_en.qm">deep/deep_en.qm</file>
+  </qresource>
+</RCC>

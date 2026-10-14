@@ -19,6 +19,11 @@ struct Config {
 	// Seat limit mirror for the UI skeleton; og_gate (M2) replaces this
 	// with the live /get-account-info value from the server.
 	static constexpr int kSeatLimit = 200;
+
+	// Deep translation language code. The reference client takes it from a
+	// settings item (evidence: "...language setting: %1"), never from the
+	// system locale; env OG_DEEP_LANG overrides it for testing.
+	static QString languageCode();
 };
 
 } // namespace OG
