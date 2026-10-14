@@ -294,6 +294,7 @@ private:
 
 	int getMainSectionTop() const;
 	int getThirdSectionTop() const;
+	int ogRightBarWidth() const;
 
 	void hideAll();
 	void showAll();

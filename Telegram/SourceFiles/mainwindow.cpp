@@ -109,7 +109,10 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 		Ui::ForceFullRepaint(this);
 	}, lifetime());
 
-	_ogConsoleButton.create(this, st::themesMenuToggle);
+	// M2: the top-right buttons live inside the body widget, so every overlay
+	// that is a body child (layer, locks, media preview, theme warning, the
+	// main widget itself) shares one stack with them - see raiseOgTopButtons().
+	_ogConsoleButton.create(bodyWidget(), st::themesMenuToggle);
 	_ogConsoleButton->setIconOverride(&st::menuIconGroups, &st::menuIconGroups);
 	_ogConsoleButton->setClickedCallback([=] {
 		if (const auto session = sessionController()) {
@@ -117,7 +120,7 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 		}
 	});
 
-	_ogToolbarButton.create(this, st::themesMenuToggle);
+	_ogToolbarButton.create(bodyWidget(), st::themesMenuToggle);
 	_ogToolbarButton->setIconOverride(
 		&st::menuIconSavedMessages,
 		&st::menuIconSavedMessages);
@@ -378,6 +381,7 @@ void MainWindow::setupMain(
 		}
 		Core::App().checkStartUrls();
 	}
+	raiseOgTopButtons();
 	fixOrder();
 	if (const auto strong = weakAnimatedLayer.get()) {
 		strong->hideAllAnimatedRun();
@@ -797,7 +801,9 @@ void MainWindow::updateControlsGeometry() {
 	if (_testingThemeWarning) _testingThemeWarning->setGeometry(body);
 
 	// M2: the reference client's top-right buttons, in the top-right corner of
-	// the content area (bodyWidget(), not the window, which owns the frame).
+	// the body widget they are children of. Their stacking order against the
+	// overlays is fixed in raiseOgTopButtons() and never touched here, so a
+	// later geometry pass cannot lift them back over an open layer.
 	const auto ogShown = (sessionController() != nullptr);
 	if (_ogConsoleButton) {
 		_ogConsoleButton->setVisible(ogShown);
@@ -806,21 +812,30 @@ void MainWindow::updateControlsGeometry() {
 		_ogToolbarButton->setVisible(ogShown);
 	}
 	if (ogShown) {
-		const auto ogTop = bodyWidget()->mapTo(this, QPoint(0, 0)).y()
-			+ kOgTopButtonsSkip;
 		auto ogRight = kOgTopButtonsSkip;
 		if (_ogToolbarButton) {
-			_ogToolbarButton->moveToRight(ogRight, ogTop);
-			_ogToolbarButton->raise();
+			_ogToolbarButton->moveToRight(ogRight, kOgTopButtonsSkip);
 			ogRight += _ogToolbarButton->width() + kOgTopButtonsSkip;
 		}
 		if (_ogConsoleButton) {
-			_ogConsoleButton->moveToRight(ogRight, ogTop);
-			_ogConsoleButton->raise();
+			_ogConsoleButton->moveToRight(ogRight, kOgTopButtonsSkip);
 		}
 	}
 
 	if (_main) _main->checkMainSectionToLayer();
+}
+
+void MainWindow::raiseOgTopButtons() {
+	// The main widget is created after the buttons and would cover them, so
+	// lift the buttons once, right before the overlays are ordered on top of
+	// everything by fixOrder(). The resulting stack is:
+	// body < main widget < the two buttons < locks / layer / preview.
+	if (_ogToolbarButton) {
+		_ogToolbarButton->raise();
+	}
+	if (_ogConsoleButton) {
+		_ogConsoleButton->raise();
+	}
 }
 
 void MainWindow::handleStartFiles(QStringList paths) {

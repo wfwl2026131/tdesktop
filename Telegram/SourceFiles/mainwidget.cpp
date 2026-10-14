@@ -2012,7 +2012,7 @@ void MainWidget::showNewSection(
 	auto saveInStack = (params.way == SectionShow::Way::Forward);
 	const auto thirdSectionTop = getThirdSectionTop();
 	const auto newThirdGeometry = QRect(
-		width() - _thirdColumnWidth,
+		width() - ogRightBarWidth() - _thirdColumnWidth,
 		thirdSectionTop,
 		_thirdColumnWidth,
 		height() - thirdSectionTop);
@@ -2439,6 +2439,12 @@ void MainWidget::orderWidgets() {
 	if (_thirdShadow) {
 		_thirdShadow->raise();
 	}
+	if (_ogRightBar) {
+		_ogRightBar->raise();
+	}
+	if (_ogSeatBar) {
+		_ogSeatBar->raise();
+	}
 	if (_firstColumnResizeArea) {
 		_firstColumnResizeArea->raise();
 	}
@@ -2574,6 +2580,12 @@ int MainWidget::getMainSectionTop() const {
 
 int MainWidget::getThirdSectionTop() const {
 	return 0;
+}
+
+int MainWidget::ogRightBarWidth() const {
+	// The dock is laid out (and reserves width) only in the multi-column
+	// layouts; the one-column layout hides it in updateControlsGeometry().
+	return (_ogRightBar && !_ogRightBar->isHidden()) ? _ogRightBarWidth : 0;
 }
 
 void MainWidget::hideAll() {
@@ -2783,9 +2795,7 @@ void MainWidget::updateControlsGeometry() {
 			_contentScrollAddToY);
 		if (_hider) _hider->setGeometry(0, 0, dialogsWidth, height());
 	} else {
-		const auto ogRight = (_ogRightBar && !_ogRightBar->isHidden())
-			? _ogRightBarWidth
-			: 0;
+		const auto ogRight = ogRightBarWidth();
 		auto thirdSectionWidth = _thirdSection ? _thirdColumnWidth : 0;
 		if (_thirdSection) {
 			auto thirdSectionTop = getThirdSectionTop();
@@ -3103,7 +3113,7 @@ void MainWidget::updateMediaPlaylistPosition(int x) {
 		auto playlistLeft = x;
 		auto playlistWidth = _playerPlaylist->width();
 		auto playlistTop = _player->y() + _player->height();
-		auto rightEdge = width();
+		auto rightEdge = width() - ogRightBarWidth();
 		if (playlistLeft + playlistWidth > rightEdge) {
 			playlistLeft = rightEdge - playlistWidth;
 		} else if (playlistLeft < 0) {
@@ -3219,23 +3229,55 @@ void MainWidget::updateWindowAdaptiveLayout() {
 	auto layout = _controller->computeColumnLayout();
 	auto dialogsWidthRatio = Core::App().settings().dialogsWidthRatio(nochat);
 
+	// M2: the always-on right dock reserves its width, so the column gates must
+	// judge the room that is left for the columns. The reservation is a
+	// constant instead of the dock's current visibility, otherwise the choice
+	// would oscillate between the pass that hides the dock and the pass that
+	// shows it again.
+	const auto reserved = _ogRightBarWidth;
+	const auto usableWidth = (layout.bodyWidth > reserved)
+		? (layout.bodyWidth - reserved)
+		: 0;
+	const auto minimalNormalWidth = st::columnMinimalWidthLeft
+		+ st::columnMinimalWidthMain;
+	// Same number as SessionController::minimalThreeColumnWidth(), which is
+	// private; computed here from the columns this widget actually lays out.
+	const auto minimalThreeColumnWidth = (_dialogs
+		? st::columnMinimalWidthLeft
+		: 0)
+		+ st::columnMinimalWidthMain
+		+ st::columnMinimalWidthThird;
+
 	// Check if we are in a single-column layout in a wide enough window
 	// for the normal layout. If so, switch to the normal layout.
 	if (layout.windowLayout == Window::Adaptive::WindowLayout::OneColumn) {
-		auto chatWidth = layout.chatWidth;
-		//if (session().settings().tabbedSelectorSectionEnabled()
-		//	&& chatWidth >= _history->minimalWidthForTabbedSelectorSection()) {
-		//	chatWidth -= _history->tabbedSelectorSectionWidth();
-		//}
-		auto minimalNormalWidth = st::columnMinimalWidthLeft
-			+ st::columnMinimalWidthMain;
-		if (chatWidth >= minimalNormalWidth) {
+		if (usableWidth >= minimalNormalWidth) {
 			// Switch layout back to normal in a wide enough window.
 			layout.windowLayout = Window::Adaptive::WindowLayout::Normal;
 			layout.dialogsWidth = st::columnMinimalWidthLeft;
-			layout.chatWidth = layout.bodyWidth - layout.dialogsWidth;
+			layout.chatWidth = usableWidth - layout.dialogsWidth;
 			dialogsWidthRatio = float64(layout.dialogsWidth) / layout.bodyWidth;
 		}
+	} else if (_dialogs && usableWidth < minimalNormalWidth) {
+		// The dock leaves no room for the normal layout, so the columns give
+		// way to the single column layout (and to the hidden dock in it).
+		layout.windowLayout = Window::Adaptive::WindowLayout::OneColumn;
+		layout.thirdWidth = 0;
+		layout.dialogsWidth = layout.chatWidth = layout.bodyWidth;
+	} else if (layout.windowLayout == Window::Adaptive::WindowLayout::ThreeColumn
+		&& usableWidth < minimalThreeColumnWidth) {
+		// The always-on dock wins the third column, which is optional.
+		layout.windowLayout = Window::Adaptive::WindowLayout::Normal;
+		layout.thirdWidth = 0;
+	}
+	if (layout.windowLayout != Window::Adaptive::WindowLayout::OneColumn) {
+		accumulate_min(
+			layout.dialogsWidth,
+			usableWidth - st::columnMinimalWidthMain);
+		accumulate_max(layout.dialogsWidth, 0);
+		layout.chatWidth = usableWidth
+			- layout.dialogsWidth
+			- layout.thirdWidth;
 	}
 
 	// Check if we are going to create the third column and shrink the

@@ -134,6 +134,7 @@ private:
 	void ensureLayerCreated();
 	void destroyLayer();
 	void raiseMediaPreview();
+	void raiseOgTopButtons();
 
 	void themeUpdated(const Window::Theme::BackgroundUpdate &data);
 

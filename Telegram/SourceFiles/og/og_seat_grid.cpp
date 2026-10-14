@@ -11,6 +11,21 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/painter.h"
 
 namespace Deep {
+namespace {
+
+// Below this cell width the 50 dots of the reference form would render as
+// 2px specks, so the same kSeatTotal seats are reflowed into fewer columns
+// instead of leaving the always-on strip blank.
+constexpr auto kReflowCell = 10;
+constexpr auto kReflowMinCols = 10;
+constexpr auto kMinDot = 3;
+constexpr auto kMaxDot = 9;
+
+[[nodiscard]] int Clamp(int value, int low, int high) {
+	return (value < low) ? low : ((value > high) ? high : value);
+}
+
+} // namespace
 
 SeatGrid::SeatGrid(QWidget *parent)
 : Ui::RpWidget(parent) {
@@ -22,18 +37,37 @@ int SeatGrid::heightForWidth(int) const {
 
 void SeatGrid::paintEvent(QPaintEvent *e) {
 	auto p = Painter(this);
-	const auto cell = (width() - 2 * kSeatPadding) / kSeatCols;
-	if (cell < 4) {
+	const auto available = width() - 2 * kSeatPadding;
+	const auto inner = height() - 2 * kSeatPadding;
+	if (available <= 0 || inner <= 0) {
 		return;
 	}
-	const auto d = (cell - 4 < 9) ? (cell - 4) : 9;
+
+	// The reference draws 50 dots per row. In a narrow main section that form
+	// is unreadable, so all kSeatTotal seats are kept but reflowed into fewer,
+	// wider columns - the strip must never turn into an empty block.
+	auto cols = kSeatCols;
+	auto cell = available / cols;
+	auto rowHeight = kSeatRowHeight;
+	auto d = (cell - 4 < kMaxDot) ? (cell - 4) : kMaxDot;
+	if (cell < kReflowCell) {
+		cols = Clamp(available / kReflowCell, kReflowMinCols, kSeatCols);
+		cell = available / cols;
+		const auto rows = (kSeatTotal + cols - 1) / cols;
+		rowHeight = inner / rows;
+		d = Clamp(((cell < rowHeight) ? cell : rowHeight) - 3, kMinDot, kMaxDot);
+	}
+	const auto reflowed = (cols != kSeatCols);
+
 	auto font = QFont();
 	font.setPixelSize(9);
 	for (auto i = 0; i != kSeatTotal; ++i) {
-		const auto col = i % kSeatCols;
-		const auto row = i / kSeatCols;
+		const auto col = i % cols;
+		const auto row = i / cols;
 		const auto x = kSeatPadding + col * cell + (cell - d) / 2;
-		const auto y = kSeatPadding + row * kSeatRowHeight + 10;
+		const auto y = reflowed
+			? (kSeatPadding + row * rowHeight + (rowHeight - d) / 2)
+			: (kSeatPadding + row * rowHeight + 10);
 		auto color = QColor(165, 170, 175);
 		if (i < 24) {
 			color = QColor(60, 174, 96);
@@ -43,12 +77,12 @@ void SeatGrid::paintEvent(QPaintEvent *e) {
 		p.setPen(Qt::NoPen);
 		p.setBrush(color);
 		p.drawEllipse(x, y, d, d);
-		if ((i % kSeatCols) == 0) {
+		if (col == 0) {
 			p.setPen(QColor(120, 125, 130));
 			p.setFont(font);
 			p.drawText(
 				kSeatPadding + col * cell,
-				kSeatPadding + row * kSeatRowHeight + 8,
+				reflowed ? (y + d) : (kSeatPadding + row * rowHeight + 8),
 				QString::number(i + 1));
 		}
 	}
