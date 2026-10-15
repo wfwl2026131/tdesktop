@@ -826,18 +826,17 @@ void MainWindow::updateControlsGeometry() {
 		// top stays at the strip's own padding - the main section below the
 		// strip starts past them either way.
 		const auto ogTop = kOgTopButtonsSkip;
-		// The dock fills that same band on the right, so the buttons anchor to
-		// the body minus the width the dock really reserves - otherwise they
-		// would cover its rightmost tab and swallow its clicks.
-		const auto dockWidth = _main ? _main->ogRightBarWidth() : 0;
-		const auto ogOuter = bodyWidget()->width() - dockWidth;
+		// The dock starts below the strip (y = OG::SeatBar::kHeight), so it no
+		// longer shares this band: the plain two-argument form anchors to
+		// parentWidget()->width() (RpWidget::moveToRight), which is exactly the
+		// body's right edge these corner buttons belong on.
 		auto ogRight = kOgTopButtonsSkip;
 		if (_ogToolbarButton) {
-			_ogToolbarButton->moveToRight(ogRight, ogTop, ogOuter);
+			_ogToolbarButton->moveToRight(ogRight, ogTop);
 			ogRight += _ogToolbarButton->width() + kOgTopButtonsSkip;
 		}
 		if (_ogConsoleButton) {
-			_ogConsoleButton->moveToRight(ogRight, ogTop, ogOuter);
+			_ogConsoleButton->moveToRight(ogRight, ogTop);
 		}
 	}
 
