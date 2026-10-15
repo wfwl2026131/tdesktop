@@ -2759,9 +2759,10 @@ void MainWidget::updateControlsGeometry() {
 	const auto mainSectionTop = getMainSectionTop();
 	// The dock is laid out in the one-column layout as well. Whether it really
 	// shows was decided by the window width in updateWindowAdaptiveLayout()
-	// above, and ogRightBarWidth() reports that single decision. Defensive:
-	// with the current gates one-column always means "the dock does not fit",
-	// so here it only ever hides it - kept for a gate change.
+	// above, and ogRightBarWidth() reports that single decision. The dock fits
+	// from bodyWidth 560 on, while the upstream one-column layout only starts
+	// below 640, so in the 560..640 band the two overlap and this block really
+	// does run with a visible dock.
 	const auto ogRight = ogRightBarWidth();
 	if (_ogRightBar) {
 		_ogRightBar->setVisible(_ogDockShown);
@@ -2774,8 +2775,9 @@ void MainWidget::updateControlsGeometry() {
 			_ogRightBar->raise();
 		}
 	}
-	// Defensive as well: one-column implies the dock is hidden today, so this
-	// branch does not take any width away.
+	// Same single decision: in the 560..640 body width band the one-column
+	// layout keeps a visible dock, so the single column gives up exactly the
+	// dock width here instead of taking the whole window.
 	auto dialogsWidth = _dialogs
 		? int(base::SafeRound(_a_dialogsWidth.value(_dialogsWidth)))
 		: isOneColumn()
@@ -3306,7 +3308,9 @@ void MainWidget::updateWindowAdaptiveLayout() {
 	if (layout.windowLayout != Window::Adaptive::WindowLayout::OneColumn) {
 		accumulate_min(
 			layout.dialogsWidth,
-			usableWidth - st::columnMinimalWidthMain);
+			usableWidth
+				- st::columnMinimalWidthMain
+				- layout.thirdWidth);
 		// The chat list keeps its own minimal width and the squeezed main
 		// section takes the remainder, which may well be under its minimum.
 		accumulate_max(
