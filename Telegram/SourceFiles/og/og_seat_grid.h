@@ -22,8 +22,9 @@ public:
 	static constexpr auto kSeatCols = 50;
 	static constexpr auto kSeatRows = 6;
 	static constexpr auto kSeatTotal = kSeatCols * kSeatRows;
-	static constexpr auto kSeatRowHeight = 34;
+	static constexpr auto kSeatRowHeight = 27;
 	static constexpr auto kSeatPadding = 8;
+	static constexpr auto kSeatDot = 24;
 
 	[[nodiscard]] int heightForWidth(int) const override;
 

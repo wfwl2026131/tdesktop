@@ -22,9 +22,10 @@ constexpr auto kReflowCell = 10;
 constexpr auto kReflowMinCols = 10;
 constexpr auto kMinDot = 3;
 constexpr auto kMaxDot = 9;
-// The reference numbers every seat, so a label goes on each dot as soon as a
-// three digit number fits inside one cell; kLabelSlack keeps neighbours apart.
-constexpr auto kLabelPixelSize = 9;
+// The reference draws each seat number inside its own dot in white, so the
+// label takes the largest pixel size whose three digits still fit the dot.
+constexpr auto kLabelMaxPixelSize = 11;
+constexpr auto kLabelMinPixelSize = 6;
 constexpr auto kLabelSlack = 2;
 // A reflowed row slot this tall still fits its row-first label; a shorter one
 // would run the labels into the next row, so those dots stay plain.
@@ -59,7 +60,9 @@ void SeatGrid::paintEvent(QPaintEvent *e) {
 	auto cols = kSeatCols;
 	auto cell = available / cols;
 	auto rowHeight = kSeatRowHeight;
-	auto d = (cell - 4 < kMaxDot) ? (cell - 4) : kMaxDot;
+	// The reference dot is 24x24. A narrower cell shrinks it so neighbours never
+	// touch, which keeps the 4px gap the reference has at its own pitch.
+	auto d = (cell - 4 < kSeatDot) ? (cell - 4) : kSeatDot;
 	if (cell < kReflowCell) {
 		cols = Clamp(available / kReflowCell, kReflowMinCols, kSeatCols);
 		cell = available / cols;
@@ -69,25 +72,32 @@ void SeatGrid::paintEvent(QPaintEvent *e) {
 	}
 	const auto reflowed = (cols != kSeatCols);
 
+	// The number is drawn inside its own dot in white, so the size is the
+	// largest one whose "300" still fits the dot that was just measured.
+	// Measuring at paint time keeps the gate honest for whichever font the
+	// platform picks at that pixel size.
 	auto font = QFont();
-	font.setPixelSize(kLabelPixelSize);
-	// Measured at paint time instead of hard-coded, so the gate keeps telling
-	// the truth for whichever font the platform picks at this pixel size.
-	const auto labelWidth = QFontMetrics(font).horizontalAdvance(
-		QStringLiteral("300"));
-	const auto everySeat = (cell >= labelWidth + kLabelSlack);
-	// The reflow always lands on cell ~= kReflowCell, so it never reaches
-	// everySeat; there the row-first label is the fallback, and the tightest
-	// reflow drops the labels altogether rather than overlapping them.
+	auto labelWidth = 0;
+	for (auto size = kLabelMaxPixelSize; size >= kLabelMinPixelSize; --size) {
+		font.setPixelSize(size);
+		labelWidth = QFontMetrics(font).horizontalAdvance(
+			QStringLiteral("300"));
+		if (labelWidth + kLabelSlack <= d) {
+			break;
+		}
+	}
+	const auto metrics = QFontMetrics(font);
+	const auto everySeat = (labelWidth + kLabelSlack <= d);
+	// The reflow always lands on a dot far smaller than any three digit label,
+	// so there the row-first label is the fallback, and the tightest reflow
+	// drops the labels altogether rather than overlapping them.
 	const auto rowFirst = !everySeat && (rowHeight >= kMinLabelRow);
 
 	for (auto i = 0; i != kSeatTotal; ++i) {
 		const auto col = i % cols;
 		const auto row = i / cols;
 		const auto x = kSeatPadding + col * cell + (cell - d) / 2;
-		const auto y = reflowed
-			? (kSeatPadding + row * rowHeight + (rowHeight - d) / 2)
-			: (kSeatPadding + row * rowHeight + 10);
+		const auto y = kSeatPadding + row * rowHeight + (rowHeight - d) / 2;
 		auto color = QColor(165, 170, 175);
 		if (i < 24) {
 			color = QColor(60, 174, 96);
@@ -100,19 +110,22 @@ void SeatGrid::paintEvent(QPaintEvent *e) {
 		if (!everySeat && (!rowFirst || col != 0)) {
 			continue;
 		}
-		p.setPen(QColor(120, 125, 130));
 		p.setFont(font);
-		// An every-seat label sits centred just above its own dot; a row-first
-		// one stays at the left edge of its row.
-		const auto left = everySeat
-			? (x + (d - labelWidth) / 2)
-			: (kSeatPadding + col * cell);
-		const auto baseline = everySeat
-			? (y - kLabelSlack)
-			: (reflowed
-				? (y + d)
-				: (kSeatPadding + row * rowHeight + 8));
-		p.drawText(left, baseline, QString::number(i + 1));
+		if (everySeat) {
+			// White and centred inside the dot - the reference form.
+			p.setPen(QColor(255, 255, 255));
+			p.drawText(
+				x + (d - labelWidth) / 2,
+				y + (d + metrics.ascent() - metrics.descent()) / 2,
+				QString::number(i + 1));
+		} else {
+			// Row-first fallback of a narrow strip: no room inside the dot.
+			p.setPen(QColor(120, 125, 130));
+			p.drawText(
+				kSeatPadding + col * cell,
+				reflowed ? (y + d) : (kSeatPadding + row * rowHeight + 8),
+				QString::number(i + 1));
+		}
 	}
 }
 

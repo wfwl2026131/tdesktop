@@ -48,15 +48,28 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "window/window_setup_email.h"
 #include "window/window_media_preview.h"
+#include "og/og_seat_bar.h"
+#include "og/og_tr.h"
 #include "styles/style_boxes.h"
-#include "styles/style_menu_icons.h"
+#include "styles/style_widgets.h"
 #include "styles/style_window.h"
 
+#include <QtGui/QBrush>
+#include <QtGui/QColor>
 #include <QtGui/QWindow>
+#include <rpl/producer.h>
 
 namespace {
 
-constexpr auto kOgTopButtonsSkip = 8;
+// Keys only - the English source text inside the key is the last fallback,
+// exactly like the rest of the Deep translation layer.
+constexpr auto kOgConsoleKey = "MainWindow::Console";
+constexpr auto kOgToolbarKey = "MainWindow::Toolbar";
+
+// Backgrounds of the two buttons, as measured in the reference client.
+const auto kOgToolbarBg = QColor(23, 33, 43);
+const auto kOgConsoleBg = QColor(47, 110, 165);
+const auto kOgButtonsTextFg = QColor(255, 255, 255);
 
 // Code for testing languages is F7-F6-F7-F8
 void FeedLangTestingKey(int key) {
@@ -112,25 +125,38 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 	// M2: the top-right buttons live inside the body widget, so every overlay
 	// that is a body child (layer, locks, media preview, theme warning, the
 	// main widget itself) shares one stack with them - see raiseOgTopButtons().
-	_ogConsoleButton.create(bodyWidget(), st::themesMenuToggle);
-	_ogConsoleButton->setIconOverride(&st::menuIconGroups, &st::menuIconGroups);
+	// They are text buttons of a fixed size inside the seat strip's own band,
+	// like the reference client's, not icon buttons over the title row.
+	_ogConsoleButton.create(
+		bodyWidget(),
+		rpl::single(OG::Tr::Lookup(kOgConsoleKey)),
+		st::defaultLightButton);
+	_ogConsoleButton->setBrushOverride(QBrush(kOgConsoleBg));
+	_ogConsoleButton->setTextFgOverride(kOgButtonsTextFg);
+	_ogConsoleButton->setFixedSize(
+		OG::SeatBar::kButtonWidth,
+		OG::SeatBar::kButtonHeight);
 	_ogConsoleButton->setClickedCallback([=] {
 		if (const auto session = sessionController()) {
 			Deep::ConsoleWindowQt::Show(session);
 		}
 	});
 
-	_ogToolbarButton.create(bodyWidget(), st::themesMenuToggle);
-	_ogToolbarButton->setIconOverride(
-		&st::menuIconSavedMessages,
-		&st::menuIconSavedMessages);
+	_ogToolbarButton.create(
+		bodyWidget(),
+		rpl::single(OG::Tr::Lookup(kOgToolbarKey)),
+		st::defaultLightButton);
+	_ogToolbarButton->setBrushOverride(QBrush(kOgToolbarBg));
+	_ogToolbarButton->setTextFgOverride(kOgButtonsTextFg);
+	_ogToolbarButton->setFixedSize(
+		OG::SeatBar::kButtonWidth,
+		OG::SeatBar::kButtonHeight);
 	_ogToolbarButton->setClickedCallback([=] {
 		if (_main) {
 			_main->toggleOgRightBar();
 			// The toggle changes the dock decision and with it both the
-			// column layout and the button anchor, which is derived from the
-			// dock width - refresh it in the same turn instead of waiting for
-			// the next window resize.
+			// column layout and the button anchor - refresh it in the same
+			// turn instead of waiting for the next window resize.
 			updateControlsGeometry();
 		}
 	});
@@ -821,19 +847,17 @@ void MainWindow::updateControlsGeometry() {
 		_ogToolbarButton->setVisible(ogShown);
 	}
 	if (ogShown) {
-		// The buttons sit inside the seat strip's own title line, which
-		// reserves 8 + 44 + 8 for them (OG::SeatBar::kTitleHeight), so their
-		// top stays at the strip's own padding - the main section below the
-		// strip starts past them either way.
-		const auto ogTop = kOgTopButtonsSkip;
-		// The dock starts below the strip (y = OG::SeatBar::kHeight), so it no
-		// longer shares this band: the plain two-argument form anchors to
-		// parentWidget()->width() (RpWidget::moveToRight), which is exactly the
-		// body's right edge these corner buttons belong on.
-		auto ogRight = kOgTopButtonsSkip;
+		// The buttons share the seat strip's own band and are centred in it,
+		// with the 40px to the window edge the reference client uses. The dock
+		// starts below the strip (y = OG::SeatBar::kHeight), so it does not
+		// share this band and the plain two-argument moveToRight anchors to
+		// parentWidget()->width() - the body's right edge.
+		const auto ogTop =
+			(OG::SeatBar::kHeight - OG::SeatBar::kButtonHeight) / 2;
+		auto ogRight = OG::SeatBar::kButtonRight;
 		if (_ogConsoleButton) {
 			_ogConsoleButton->moveToRight(ogRight, ogTop);
-			ogRight += _ogConsoleButton->width() + kOgTopButtonsSkip;
+			ogRight += _ogConsoleButton->width() + OG::SeatBar::kButtonSkip;
 		}
 		if (_ogToolbarButton) {
 			_ogToolbarButton->moveToRight(ogRight, ogTop);

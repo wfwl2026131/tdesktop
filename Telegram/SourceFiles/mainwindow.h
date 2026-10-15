@@ -38,7 +38,7 @@ class WarningWidget;
 namespace Ui {
 class LinkButton;
 class BoxContent;
-class IconButton;
+class RoundButton;
 class LayerStackWidget;
 } // namespace Ui
 
@@ -148,9 +148,10 @@ private:
 	rpl::variable<bool> _boxShown = false;
 	object_ptr<Window::MediaPreviewWidget> _mediaPreview = { nullptr };
 
-	// M2 top-right buttons of the reference client (Console / Toolbar).
-	object_ptr<Ui::IconButton> _ogConsoleButton = { nullptr };
-	object_ptr<Ui::IconButton> _ogToolbarButton = { nullptr };
+	// M2 top-right buttons of the reference client (Console / Toolbar), drawn
+	// as text buttons inside the seat strip's own band.
+	object_ptr<Ui::RoundButton> _ogConsoleButton = { nullptr };
+	object_ptr<Ui::RoundButton> _ogToolbarButton = { nullptr };
 
 	object_ptr<Window::Theme::WarningWidget> _testingThemeWarning = { nullptr };
 

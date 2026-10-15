@@ -12,11 +12,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "og/og_tr.h"
 #include <rpl/producer.h>
 #include "ui/qt_object_factory.h"
+#include "ui/painter.h"
 #include "ui/rp_widget.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
+#include "styles/palette.h"
+#include "styles/style_basic.h"
 #include "styles/style_layers.h"
 
 namespace Deep {
@@ -126,6 +129,13 @@ void RightToolBar::resizeEvent(QResizeEvent *e) {
 			kActionHeight);
 		top += kActionHeight + kActionSkip;
 	}
+}
+
+void RightToolBar::paintEvent(QPaintEvent *e) {
+	// Without this the dock stays unpainted: the main window sets
+	// Qt::WA_OpaquePaintEvent, so nothing behind it fills the panel.
+	auto p = Painter(this);
+	p.fillRect(rect(), st::windowBg);
 }
 
 } // namespace Deep
