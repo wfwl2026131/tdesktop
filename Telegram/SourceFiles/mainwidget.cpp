@@ -2759,7 +2759,9 @@ void MainWidget::updateControlsGeometry() {
 	const auto mainSectionTop = getMainSectionTop();
 	// The dock is laid out in the one-column layout as well. Whether it really
 	// shows was decided by the window width in updateWindowAdaptiveLayout()
-	// above, and ogRightBarWidth() reports that single decision.
+	// above, and ogRightBarWidth() reports that single decision. Defensive:
+	// with the current gates one-column always means "the dock does not fit",
+	// so here it only ever hides it - kept for a gate change.
 	const auto ogRight = ogRightBarWidth();
 	if (_ogRightBar) {
 		_ogRightBar->setVisible(_ogDockShown);
@@ -2772,6 +2774,8 @@ void MainWidget::updateControlsGeometry() {
 			_ogRightBar->raise();
 		}
 	}
+	// Defensive as well: one-column implies the dock is hidden today, so this
+	// branch does not take any width away.
 	auto dialogsWidth = _dialogs
 		? int(base::SafeRound(_a_dialogsWidth.value(_dialogsWidth)))
 		: isOneColumn()
