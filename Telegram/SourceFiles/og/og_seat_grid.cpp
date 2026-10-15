@@ -98,7 +98,7 @@ void SeatGrid::paintEvent(QPaintEvent *e) {
 		const auto row = i / cols;
 		const auto x = kSeatPadding + col * cell + (cell - d) / 2;
 		const auto y = kSeatPadding + row * rowHeight + (rowHeight - d) / 2;
-		auto color = QColor(165, 170, 175);
+		auto color = QColor(204, 204, 204);
 		if (i < 24) {
 			color = QColor(60, 174, 96);
 		} else if (i >= 200 && i < 204) {

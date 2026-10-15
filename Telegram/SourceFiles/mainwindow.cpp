@@ -106,6 +106,12 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 
 	setLocale(QLocale(QLocale::English, QLocale::UnitedStates));
 
+	// Deep translations must be loaded before the first Lookup() call, and the
+	// top-right text buttons below are the first ones: they resolve their
+	// labels once, at construction, and never refresh. This window is built
+	// after the language pack is applied, so its id is the live one here.
+	OG::Tr::Start();
+
 	using Window::Theme::BackgroundUpdate;
 	Window::Theme::Background()->updates(
 	) | rpl::on_next([=](const BackgroundUpdate &data) {

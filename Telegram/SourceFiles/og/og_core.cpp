@@ -8,6 +8,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "og/og_core.h"
 
+#include "lang/lang_keys.h"
+
 #include <cstdlib>
 
 namespace OG {
@@ -26,8 +28,17 @@ QString Config::languageCode() {
 		!overrideLanguage.isEmpty()) {
 		return overrideLanguage;
 	}
-	// M2 replaces this with the settings item the reference reads.
-	return QString::fromLatin1("en");
+	// The reference takes it from a settings item; in this fork the live value
+	// is the UI language pack the window is running in.
+	const auto current = Lang::Id();
+	if (current.isEmpty()) {
+		return QString::fromLatin1("en");
+	}
+	// One Chinese pack ships with the build, so every Chinese variant uses it.
+	if (current.startsWith(QString::fromLatin1("zh"), Qt::CaseInsensitive)) {
+		return QString::fromLatin1("zh-hans");
+	}
+	return current;
 }
 
 } // namespace OG
