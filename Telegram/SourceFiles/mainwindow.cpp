@@ -831,12 +831,12 @@ void MainWindow::updateControlsGeometry() {
 		// parentWidget()->width() (RpWidget::moveToRight), which is exactly the
 		// body's right edge these corner buttons belong on.
 		auto ogRight = kOgTopButtonsSkip;
-		if (_ogToolbarButton) {
-			_ogToolbarButton->moveToRight(ogRight, ogTop);
-			ogRight += _ogToolbarButton->width() + kOgTopButtonsSkip;
-		}
 		if (_ogConsoleButton) {
 			_ogConsoleButton->moveToRight(ogRight, ogTop);
+			ogRight += _ogConsoleButton->width() + kOgTopButtonsSkip;
+		}
+		if (_ogToolbarButton) {
+			_ogToolbarButton->moveToRight(ogRight, ogTop);
 		}
 	}
 

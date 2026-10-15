@@ -70,9 +70,9 @@ void RightToolBar::setupTabs() {
 		_tabs.push_back(button);
 	};
 	addTab(kUnreadKey, false);
+	addTab(kQuickReplyKey, false);
 	addTab(kTranslationKey, false);
 	addTab(kClientsKey, true);
-	addTab(kQuickReplyKey, false);
 }
 
 void RightToolBar::setupHint() {

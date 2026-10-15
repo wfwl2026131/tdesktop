@@ -30,7 +30,7 @@ namespace Deep {
 //
 // Evidence: `Deep::RightToolBar` inherits `Ui::RpWidget` in the reference
 // binary, so our class does the same instead of reusing a plain box. Its four
-// tabs are Unread Messages / Translation / Client List / QuickReply, and the
+// tabs are Unread Messages / Quick Reply / Translation / Client List, and the
 // client list owns a disabled state.
 //
 // M1 keeps the tabs static: clicking one only reports what M2 will wire to
@@ -43,7 +43,7 @@ public:
 		not_null<Window::SessionController*> controller);
 
 	// M1 skeleton size; the dock layout of M1.5b replaces it.
-	static constexpr auto kWidth = 380;
+	static constexpr auto kWidth = 300;
 	static constexpr auto kHeight = 420;
 
 protected:
