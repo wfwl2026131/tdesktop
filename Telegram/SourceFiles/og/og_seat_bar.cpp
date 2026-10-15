@@ -21,6 +21,10 @@ namespace {
 
 constexpr auto kPadding = 8;
 
+// The window's top-right buttons are drawn over the right end of the title
+// line: 8 + 44 + 8 + 44 + 8, so the text must stay clear of them.
+constexpr auto kTitleRightSkip = 112;
+
 // Keys only - the text lives in the Deep translation data, with the English
 // source text below as the last fallback.
 constexpr auto kTitleKey = "SeatBar::Seats";
@@ -40,7 +44,11 @@ void SeatBar::resizeEvent(QResizeEvent *e) {
 	Ui::RpWidget::resizeEvent(e);
 
 	if (_title) {
-		_title->setGeometry(kPadding, 0, width() - 2 * kPadding, kTitleHeight);
+		auto titleWidth = width() - 2 * kPadding - kTitleRightSkip;
+		if (titleWidth < 0) {
+			titleWidth = 0;
+		}
+		_title->setGeometry(kPadding, 0, titleWidth, kTitleHeight);
 	}
 	if (_grid) {
 		_grid->setGeometry(0, kTitleHeight, width(), kGridHeight);

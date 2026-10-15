@@ -23,7 +23,10 @@ class SeatBar final : public Ui::RpWidget {
 public:
 	explicit SeatBar(QWidget *parent);
 
-	static constexpr auto kTitleHeight = 20;
+	// The window's top-right buttons are laid out inside this line, so it
+	// reserves 8 + 44 + 8 for them - and the main section below the whole
+	// strip, so the chat's own top bar can never end up under them.
+	static constexpr auto kTitleHeight = 60;
 	static constexpr auto kGridHeight = Deep::SeatGrid::kSeatRows
 		* Deep::SeatGrid::kSeatRowHeight
 		+ Deep::SeatGrid::kSeatPadding;

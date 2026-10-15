@@ -31,7 +31,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_domain.h"
 #include "mainwidget.h"
 #include "og/og_console.h"
-#include "og/og_seat_bar.h"
 #include "ui/boxes/confirm_box.h"
 #include "boxes/connection_box.h"
 #include "storage/storage_account.h"
@@ -128,6 +127,11 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 	_ogToolbarButton->setClickedCallback([=] {
 		if (_main) {
 			_main->toggleOgRightBar();
+			// The toggle changes the dock decision and with it both the
+			// column layout and the button anchor, which is derived from the
+			// dock width - refresh it in the same turn instead of waiting for
+			// the next window resize.
+			updateControlsGeometry();
 		}
 	});
 
@@ -367,6 +371,10 @@ void MainWindow::setupMain(
 	_main = std::move(created);
 	updateControlsGeometry();
 	Ui::SendPendingMoveResizeEvents(_main);
+	// The pass above ran before the pending resize was flushed, so the main
+	// widget still reported the header default for its dock width; redo it
+	// now that the real geometry is in place.
+	updateControlsGeometry();
 	_main->controller()->showByInitialId(
 		Window::SectionShow::Way::ClearStack,
 		singlePeerShowAtMsgId);
@@ -813,9 +821,11 @@ void MainWindow::updateControlsGeometry() {
 		_ogToolbarButton->setVisible(ogShown);
 	}
 	if (ogShown) {
-		// The always-on seat strip owns the top of the client area, so the
-		// buttons drop below it instead of sitting on the first seat row.
-		const auto ogTop = OG::SeatBar::kHeight + kOgTopButtonsSkip;
+		// The buttons sit inside the seat strip's own title line, which
+		// reserves 8 + 44 + 8 for them (OG::SeatBar::kTitleHeight), so their
+		// top stays at the strip's own padding - the main section below the
+		// strip starts past them either way.
+		const auto ogTop = kOgTopButtonsSkip;
 		// The dock fills that same band on the right, so the buttons anchor to
 		// the body minus the width the dock really reserves - otherwise they
 		// would cover its rightmost tab and swallow its clicks.

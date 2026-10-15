@@ -2832,8 +2832,6 @@ void MainWidget::updateControlsGeometry() {
 				thirdSectionWidth,
 				height() - thirdSectionTop);
 		}
-		const auto shadowTop = _controller->window().verticalShadowTop();
-		const auto shadowHeight = height() - shadowTop;
 		if (_dialogs) {
 			accumulate_min(
 				dialogsWidth,
@@ -2845,18 +2843,20 @@ void MainWidget::updateControlsGeometry() {
 				height() - _ogSeatBarHeight);
 		}
 		if (_sideShadow) {
+			// The columns start below the seat strip now, so the shadow line
+			// between them must not run up through it.
 			_sideShadow->setGeometryToLeft(
 				dialogsWidth,
-				shadowTop,
+				_ogSeatBarHeight,
 				st::lineWidth,
-				shadowHeight);
+				height() - _ogSeatBarHeight);
 		}
 		if (_thirdShadow) {
 			_thirdShadow->setGeometryToLeft(
 				width() - ogRight - thirdSectionWidth - st::lineWidth,
-				shadowTop,
+				_ogSeatBarHeight,
 				st::lineWidth,
-				shadowHeight);
+				height() - _ogSeatBarHeight);
 		}
 		auto mainSectionWidth = width()
 			- dialogsWidth
@@ -2937,9 +2937,9 @@ void MainWidget::refreshResizeAreas() {
 		ensureFirstColumnResizeAreaCreated();
 		_firstColumnResizeArea->setGeometryToLeft(
 			_history->x(),
-			0,
+			_ogSeatBarHeight,
 			st::historyResizeWidth,
-			height());
+			height() - _ogSeatBarHeight);
 	} else if (_firstColumnResizeArea) {
 		_firstColumnResizeArea.destroy();
 	}
@@ -2948,9 +2948,9 @@ void MainWidget::refreshResizeAreas() {
 		ensureThirdColumnResizeAreaCreated();
 		_thirdColumnResizeArea->setGeometryToLeft(
 			_thirdSection->x(),
-			0,
+			_ogSeatBarHeight,
 			st::historyResizeWidth,
-			height());
+			height() - _ogSeatBarHeight);
 	} else if (_thirdColumnResizeArea) {
 		_thirdColumnResizeArea.destroy();
 	}
