@@ -2775,17 +2775,16 @@ void MainWidget::updateControlsGeometry() {
 			_ogRightBar->raise();
 		}
 	}
-	// Same single decision: in the 560..640 body width band the one-column
-	// layout keeps a visible dock, so the single column gives up exactly the
-	// dock width here instead of taking the whole window.
+	// How much the single column gives up for the dock is decided in the layout
+	// layer (the OneColumn branch of updateWindowAdaptiveLayout()), not here:
+	// this only reads back the width that was laid out. The seat strip itself
+	// stays as wide as the window.
 	auto dialogsWidth = _dialogs
 		? int(base::SafeRound(_a_dialogsWidth.value(_dialogsWidth)))
-		: isOneColumn()
-		? width() - ogRight
 		: 0;
 	if (isOneColumn()) {
 		if (_ogSeatBar) {
-			_ogSeatBar->setGeometry(0, 0, dialogsWidth, _ogSeatBarHeight);
+			_ogSeatBar->setGeometry(0, 0, width(), _ogSeatBarHeight);
 			_ogSeatBar->raise();
 		}
 		if (_callTopBar) {
@@ -3290,6 +3289,11 @@ void MainWidget::updateWindowAdaptiveLayout() {
 			layout.dialogsWidth = st::columnMinimalWidthLeft;
 			layout.chatWidth = usableWidth - layout.dialogsWidth;
 			dialogsWidthRatio = float64(layout.dialogsWidth) / layout.bodyWidth;
+		} else {
+			// Still a single column: it takes what is left beside the always-on
+			// dock instead of the whole window. Applying this here keeps the
+			// geometry layer free of any dock arithmetic.
+			layout.dialogsWidth = layout.chatWidth = usableWidth;
 		}
 	} else if (_dialogs && usableWidth < st::columnMinimalWidthLeft) {
 		// Only when not even the minimal chat list fits beside the dock do the
