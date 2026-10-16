@@ -22,6 +22,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_basic.h"
 #include "styles/style_layers.h"
 
+#include <QtGui/QColor>
+
 namespace Deep {
 namespace {
 
@@ -31,6 +33,14 @@ constexpr auto kMargin = 12;
 constexpr auto kHintHeight = 36;
 constexpr auto kActionHeight = 34;
 constexpr auto kActionSkip = 6;
+
+// The reference paints the top of the right column dark - 67 logical px of
+// rgb(23,33,43), the same colour as the toolbar button above it - and the rest
+// white. Only the tab row and the hint line sit inside that band (the action
+// buttons start below it), so only their content switches to a light colour.
+constexpr auto kTopDarkHeight = 67;
+const auto kTopDarkBg = QColor(23, 33, 43);
+const auto kTopDarkFg = QColor(255, 255, 255);
 
 // Keys only - the text lives in the Deep translation data (:/deep/translations)
 // with the English source string as the last fallback.
@@ -67,6 +77,7 @@ void RightToolBar::setupTabs() {
 			: (OG::Tr::Lookup(key)
 				+ QString::fromLatin1(" / ")
 				+ OG::Tr::Lookup(kM2Key));
+		button->setTextFgOverride(kTopDarkFg);
 		button->setClickedCallback([=] {
 			_controller->window().showToast(text, kToastDuration);
 		});
@@ -83,6 +94,8 @@ void RightToolBar::setupHint() {
 		this,
 		rpl::single(OG::Tr::Lookup(kHintKey)),
 		st::defaultFlatLabel);
+	// The hint line falls inside the dark band of the panel.
+	_hint->setTextColorOverride(kTopDarkFg);
 }
 
 void RightToolBar::setupActions() {
@@ -133,9 +146,11 @@ void RightToolBar::resizeEvent(QResizeEvent *e) {
 
 void RightToolBar::paintEvent(QPaintEvent *e) {
 	// Without this the dock stays unpainted: the main window sets
-	// Qt::WA_OpaquePaintEvent, so nothing behind it fills the panel.
+	// Qt::WA_OpaquePaintEvent, so nothing behind it fills the panel. The
+	// reference paints the top of the panel dark, the rest white.
 	auto p = Painter(this);
 	p.fillRect(rect(), st::windowBg);
+	p.fillRect(QRect(0, 0, width(), kTopDarkHeight), kTopDarkBg);
 }
 
 } // namespace Deep
