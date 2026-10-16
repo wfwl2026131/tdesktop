@@ -22,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_basic.h"
 #include "styles/style_layers.h"
 
+#include <QtGui/QBrush>
 #include <QtGui/QColor>
 
 namespace Deep {
@@ -77,6 +78,9 @@ void RightToolBar::setupTabs() {
 			: (OG::Tr::Lookup(key)
 				+ QString::fromLatin1(" / ")
 				+ OG::Tr::Lookup(kM2Key));
+		// The tab row sits inside the dark band, so the button's own light
+		// fill would both cover the band and hide the light text on it.
+		button->setBrushOverride(QBrush(kTopDarkBg));
 		button->setTextFgOverride(kTopDarkFg);
 		button->setClickedCallback([=] {
 			_controller->window().showToast(text, kToastDuration);
