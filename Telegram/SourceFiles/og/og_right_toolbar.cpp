@@ -43,6 +43,17 @@ constexpr auto kTopDarkHeight = 67;
 const auto kTopDarkBg = QColor(23, 33, 43);
 const auto kTopDarkFg = QColor(255, 255, 255);
 
+// 1 logical px darker line between the tab row and the hint line: measured
+// 71..72 physical px below the top of the band, i.e. logical ~35.5.
+constexpr auto kTopDarkLineTop = 35;
+const auto kTopDarkLineBg = QColor(16, 25, 33);
+
+// The panel body below the band does not follow the system theme - the
+// reference keeps it white in both light and dark mode - so its background
+// and everything drawn on it are pinned to the light-mode colours.
+const auto kBodyBg = QColor(255, 255, 255);
+const auto kActionFg = QColor(63, 137, 199);
+
 // Keys only - the text lives in the Deep translation data (:/deep/translations)
 // with the English source string as the last fallback.
 constexpr auto kUnreadKey = "RightToolBar::Unread Messages";
@@ -108,6 +119,10 @@ void RightToolBar::setupActions() {
 			this,
 			rpl::single(OG::Tr::Lookup(key)),
 			st::defaultLightButton);
+		// The body stays white in dark mode as well, so pin the button to the
+		// light-mode look instead of letting the theme repaint it dark.
+		button->setBrushOverride(QBrush(kBodyBg));
+		button->setTextFgOverride(kActionFg);
 		button->setClickedCallback([=] {
 			_controller->window().showToast(
 				OG::Tr::Lookup(key),
@@ -153,8 +168,9 @@ void RightToolBar::paintEvent(QPaintEvent *e) {
 	// Qt::WA_OpaquePaintEvent, so nothing behind it fills the panel. The
 	// reference paints the top of the panel dark, the rest white.
 	auto p = Painter(this);
-	p.fillRect(rect(), st::windowBg);
+	p.fillRect(rect(), kBodyBg);
 	p.fillRect(QRect(0, 0, width(), kTopDarkHeight), kTopDarkBg);
+	p.fillRect(QRect(0, kTopDarkLineTop, width(), 1), kTopDarkLineBg);
 }
 
 } // namespace Deep
