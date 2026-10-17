@@ -15,7 +15,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <vector>
 
 namespace Ui {
-class FlatLabel;
 class RoundButton;
 } // namespace Ui
 
@@ -34,8 +33,10 @@ namespace Deep {
 // client list owns a disabled state.
 //
 // M1 keeps the tabs static: clicking one only reports what M2 will wire to
-// live session data. Tab pages, the filter row and the real read actions
-// arrive with M2; docking it into the main window equals M1.5b.
+// live session data. The two filter rows under them are painted by hand and
+// only switch their own selection; wiring them to live data and the read
+// actions arrive with M2, and docking the panel into the main window equals
+// M1.5b.
 class RightToolBar final : public Ui::RpWidget {
 public:
 	RightToolBar(
@@ -48,17 +49,21 @@ public:
 
 protected:
 	void resizeEvent(QResizeEvent *e) override;
+	void mousePressEvent(QMouseEvent *e) override;
 	void paintEvent(QPaintEvent *e) override;
 
 private:
 	void setupTabs();
-	void setupHint();
 	void setupActions();
 
 	const not_null<Window::SessionController*> _controller;
 	std::vector<not_null<Ui::RoundButton*>> _tabs;
-	Ui::FlatLabel *_hint = nullptr;
 	std::vector<not_null<Ui::RoundButton*>> _actions;
+
+	// Selection of the two hand painted filter rows. Index 0 is "Unread" on
+	// the first row and "All" on the second one, as in the reference.
+	int _row2Selected = 0;
+	int _row3Selected = 0;
 };
 
 } // namespace Deep

@@ -47,6 +47,34 @@
         <source>Clear Selection</source>
         <translation>Clear Selection</translation>
     </message>
+    <message>
+        <source>Unread</source>
+        <translation>Unread</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>Read</translation>
+    </message>
+    <message>
+        <source>Configured</source>
+        <translation>Configured</translation>
+    </message>
+    <message>
+        <source>All</source>
+        <translation>All</translation>
+    </message>
+    <message>
+        <source>Private</source>
+        <translation>Private</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Group</translation>
+    </message>
+    <message>
+        <source>New</source>
+        <translation>New</translation>
+    </message>
 </context>
 <context>
     <name>ConsoleWindowQt</name>
