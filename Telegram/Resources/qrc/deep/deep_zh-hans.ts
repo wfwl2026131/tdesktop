@@ -52,7 +52,7 @@
     <name>ConsoleWindowQt</name>
     <message>
         <source>Title</source>
-        <translation>Console</translation>
+        <translation>控制台</translation>
     </message>
     <message>
         <source>Seat grid hint</source>

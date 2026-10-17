@@ -118,8 +118,10 @@ ConsoleWindowQt::ConsoleWindowQt(
 : QDialog(parent)
 , _controller(controller) {
 	setWindowTitle(OG::Tr::Lookup(kTitleKey));
-	setMinimumSize(kWidth, kHeight);
-	resize(kWidth, kHeight);
+	// The reference window cannot be resized and carries no maximize button, so
+	// the hint is set explicitly instead of relying on Qt to drop WS_THICKFRAME.
+	setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
+	setFixedSize(kWidth, kHeight);
 	setupContent();
 }
 

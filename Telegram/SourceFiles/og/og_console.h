@@ -38,8 +38,11 @@ public:
 	// deletes itself on close, so a second call always opens a fresh one.
 	static void Show(not_null<Window::SessionController*> controller);
 
-	static constexpr auto kWidth = 700;
-	static constexpr auto kHeight = 620;
+	// Client area of the reference window (Windows: 1210x770 measured with
+	// GetClientRect, while the whole window is 1223x806 because the 29 logical
+	// px title bar sits outside of it).
+	static constexpr auto kWidth = 1210;
+	static constexpr auto kHeight = 770;
 
 private:
 	void setupContent();
