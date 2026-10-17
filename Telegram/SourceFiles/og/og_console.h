@@ -34,8 +34,10 @@ public:
 		QWidget *parent,
 		not_null<Window::SessionController*> controller);
 
-	// Creates the window, shows it and brings it to the front. The window
-	// deletes itself on close, so a second call always opens a fresh one.
+	// Shows the window and brings it to the front. Escape only hides it and the
+	// next call reuses the same instance; closing it (the title bar button or
+	// the Close button inside) destroys it and the call after that opens a
+	// fresh one.
 	static void Show(not_null<Window::SessionController*> controller);
 
 	// Client area of the reference window (Windows: 1210x770 measured with
@@ -47,6 +49,10 @@ public:
 private:
 	void setupContent();
 	void buildContent(not_null<Ui::VerticalLayout*> content);
+
+	// Escape hides the window instead of closing it, so that the instance
+	// survives for the next Show() to reuse.
+	void reject() override;
 
 	const not_null<Window::SessionController*> _controller;
 };

@@ -27,6 +27,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_menu_icons.h"
 #include "styles/style_window.h"
 
+#include <QtCore/QPointer>
 #include <QtWidgets/QScrollArea>
 #include <QtWidgets/QVBoxLayout>
 
@@ -118,20 +119,50 @@ ConsoleWindowQt::ConsoleWindowQt(
 : QDialog(parent)
 , _controller(controller) {
 	setWindowTitle(OG::Tr::Lookup(kTitleKey));
-	// The reference window cannot be resized and carries no maximize button, so
-	// the hint is set explicitly instead of relying on Qt to drop WS_THICKFRAME.
-	setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
+	// The reference window cannot be resized and its title bar carries a single
+	// button, so the flags are spelled out: no context help question mark (a
+	// QDialog adds it by default), and MSWindowsFixedSizeDialogHint instead of
+	// relying on Qt to drop WS_THICKFRAME.
+	setWindowFlags(
+		Qt::Dialog
+		| Qt::WindowTitleHint
+		| Qt::WindowSystemMenuHint
+		| Qt::WindowCloseButtonHint
+		| Qt::MSWindowsFixedSizeDialogHint);
 	setFixedSize(kWidth, kHeight);
 	setupContent();
 }
 
 void ConsoleWindowQt::Show(
 		not_null<Window::SessionController*> controller) {
+	// One instance is kept alive while the window is only hidden, so that
+	// Escape and a second menu click bring back the very same window. Closing
+	// it deletes it and clears this pointer, which makes the next call open a
+	// fresh window again.
+	static auto instance = QPointer<ConsoleWindowQt>();
+	if (instance) {
+		if (instance->windowState() & Qt::WindowMinimized) {
+			instance->setWindowState(
+				(instance->windowState() & ~Qt::WindowMinimized)
+				| Qt::WindowActive);
+		}
+		instance->show();
+		instance->raise();
+		instance->activateWindow();
+		return;
+	}
 	const auto window = new ConsoleWindowQt(nullptr, controller);
 	window->setAttribute(Qt::WA_DeleteOnClose);
+	instance = window;
 	window->show();
 	window->raise();
 	window->activateWindow();
+}
+
+void ConsoleWindowQt::reject() {
+	// Escape hides the window instead of closing it: the reference client keeps
+	// the same native window and reuses it, and only its X button destroys it.
+	hide();
 }
 
 void ConsoleWindowQt::setupContent() {
