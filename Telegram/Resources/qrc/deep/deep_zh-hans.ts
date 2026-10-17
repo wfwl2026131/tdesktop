@@ -49,15 +49,15 @@
     </message>
     <message>
         <source>Unread</source>
-        <translation>Unread</translation>
+        <translation>未读</translation>
     </message>
     <message>
         <source>Read</source>
-        <translation>Read</translation>
+        <translation>已读</translation>
     </message>
     <message>
         <source>Configured</source>
-        <translation>Configured</translation>
+        <translation>配置</translation>
     </message>
     <message>
         <source>All</source>
@@ -65,15 +65,15 @@
     </message>
     <message>
         <source>Private</source>
-        <translation>Private</translation>
+        <translation>私聊</translation>
     </message>
     <message>
         <source>Group</source>
-        <translation>Group</translation>
+        <translation>群组</translation>
     </message>
     <message>
         <source>New</source>
-        <translation>New</translation>
+        <translation>新客</translation>
     </message>
 </context>
 <context>
