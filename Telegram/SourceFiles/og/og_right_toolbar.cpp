@@ -77,6 +77,13 @@ constexpr auto kM2Key = "RightToolBar::M2 placeholder";
 // the one between them.
 constexpr auto kRow2UnreadKey = "RightToolBar::Unread (%1)";
 
+// The count whose label may give way to the overflow form below, and that
+// form. It is only reached when the exact label cannot be laid out at the
+// smallest row size at all: the badge shrinks first and the number itself is
+// never cut in the middle.
+constexpr auto kUnreadOverflowFrom = 100;
+constexpr auto kUnreadOverflowText = "99+";
+
 // Geometry of the two filter rows, taken from the measured crop of the
 // reference window and expressed in widget-local logical px. The first row
 // (unread / read / configured) starts at the panel edge, has no gaps and
@@ -132,7 +139,6 @@ constexpr auto kRowHeightSlack = 6;
 constexpr auto kRowTextSlack = 4;
 
 struct FilterRowStyle {
-	int height = 0;
 	int radius = 0;
 	QColor bg;
 	QColor fg;
@@ -142,7 +148,6 @@ struct FilterRowStyle {
 };
 
 const auto kRow2Style = FilterRowStyle{
-	.height = kRow2Height,
 	.radius = 0,
 	.bg = kRow2Bg,
 	.fg = kRow2Fg,
@@ -151,7 +156,6 @@ const auto kRow2Style = FilterRowStyle{
 	.border = QColor(Qt::transparent),
 };
 const auto kRow3Style = FilterRowStyle{
-	.height = kRow3Height,
 	.radius = kRow3Radius,
 	.bg = kRow3Bg,
 	.fg = kRow3Fg,
@@ -187,34 +191,91 @@ std::array<QString, N> RowTexts(const std::array<const char *, N> &keys) {
 	return result;
 }
 
+// Whether one segment holds its own text at `pixelSize`: the line has to fit
+// the row height and the advance plus kRowTextSlack has to fit the segment.
+bool RowTextFits(int pixelSize, const QString &text, int width, int rowHeight) {
+	auto font = QFont();
+	font.setPixelSize(pixelSize);
+	const auto metrics = QFontMetrics(font);
+	return (metrics.height() <= rowHeight - kRowHeightSlack)
+		&& (metrics.horizontalAdvance(text) + kRowTextSlack <= width);
+}
+
+// The largest pixel size whose every text fits its own segment, or
+// kRowMinPixelSize when even that one does not. Measuring at paint time keeps
+// the gate honest for whichever font the platform picks at that pixel size.
 template <size_t N>
-QFont RowFont(
+int RowPixelSize(
 		int rowHeight,
 		const std::array<QRect, N> &rects,
 		const std::array<QString, N> &texts) {
-	const auto limit = rowHeight - kRowHeightSlack;
-	auto font = QFont();
 	for (auto size = kRowMaxPixelSize; size >= kRowMinPixelSize; --size) {
-		font.setPixelSize(size);
-		const auto metrics = QFontMetrics(font);
-		if (metrics.height() > limit) {
-			continue;
-		}
 		auto fits = true;
 		for (auto i = 0; i != int(N); ++i) {
-			const auto needed = metrics.horizontalAdvance(texts[i])
-				+ kRowTextSlack;
-			if (needed > rects[i].width()) {
+			if (!RowTextFits(size, texts[i], rects[i].width(), rowHeight)) {
 				fits = false;
 				break;
 			}
 		}
 		if (fits) {
-			return font;
+			return size;
 		}
 	}
-	font.setPixelSize(kRowMinPixelSize);
+	return kRowMinPixelSize;
+}
+
+// The same measurement for one segment on its own: the unread total has to
+// size itself without dragging the other two segments of its row down.
+int RowTextPixelSize(const QString &text, int width, int rowHeight) {
+	return RowPixelSize(
+		rowHeight,
+		std::array<QRect, 1>{ QRect(0, 0, width, rowHeight) },
+		std::array<QString, 1>{ text });
+}
+
+QFont FontOfPixelSize(int pixelSize) {
+	auto font = QFont();
+	font.setPixelSize(pixelSize);
 	return font;
+}
+
+template <size_t N>
+std::array<QFont, N> UniformFonts(const QFont &font) {
+	auto result = std::array<QFont, N>();
+	result.fill(font);
+	return result;
+}
+
+// What the unread segment shows and at which size, decided in one place: the
+// label with the count substituted is shrunk on its own first, and only a
+// count that not even kRowMinPixelSize can hold falls back to the overflow
+// form above.
+struct UnreadLabel {
+	QString text;
+	int pixelSize = kRowMinPixelSize;
+};
+
+UnreadLabel UnreadSegmentLabel(int count, int width, int rowHeight) {
+	const auto format = OG::Tr::Lookup(kRow2UnreadKey);
+	auto result = UnreadLabel{ .text = format.arg(count) };
+	result.pixelSize = RowTextPixelSize(result.text, width, rowHeight);
+	if (count >= kUnreadOverflowFrom
+		&& !RowTextFits(
+			result.pixelSize,
+			result.text,
+			width,
+			rowHeight)) {
+		result.text = format.arg(kUnreadOverflowText);
+		result.pixelSize = RowTextPixelSize(result.text, width, rowHeight);
+	}
+	return result;
+}
+
+// The offset of a vertically centred single line's baseline from the top of
+// its rect - the same placement Qt::AlignVCenter uses, spelled out so that a
+// segment with a smaller font can be put back on the row's shared baseline.
+int RowBaselineOffset(const QFontMetrics &metrics, int height) {
+	return (height + metrics.ascent() - metrics.descent()) / 2;
 }
 
 template <size_t N>
@@ -222,13 +283,19 @@ void PaintFilterRow(
 		QPainter &p,
 		const std::array<QRect, N> &rects,
 		const std::array<QString, N> &texts,
+		const std::array<QFont, N> &fonts,
+		const QFont &rowFont,
 		int selected,
 		const FilterRowStyle &style) {
-	const auto font = RowFont(style.height, rects, texts);
 	const auto radius = qreal(style.radius);
 	const auto border = (style.border.alpha() > 0);
+	const auto rowMetrics = QFontMetrics(rowFont);
+	// All segments of a row draw on one baseline, taken from the row's own
+	// font: a segment that had to shrink (only the unread one can) is put back
+	// on that line instead of sitting lower in the middle of its own box.
+	const auto baseline = rects[0].y()
+		+ RowBaselineOffset(rowMetrics, rects[0].height());
 	auto hq = PainterHighQualityEnabler(p);
-	p.setFont(font);
 	for (auto i = 0; i != int(N); ++i) {
 		const auto &rect = rects[i];
 		const auto active = (i == selected);
@@ -249,8 +316,13 @@ void PaintFilterRow(
 				p.drawRect(rect);
 			}
 		}
+		p.setFont(fonts[i]);
 		p.setPen(active ? style.selectedFg : style.fg);
-		p.drawText(rect, Qt::AlignCenter, texts[i]);
+		auto textRect = rect;
+		textRect.moveTop(
+			baseline
+			- RowBaselineOffset(QFontMetrics(fonts[i]), rect.height()));
+		p.drawText(textRect, Qt::AlignCenter, texts[i]);
 	}
 }
 
@@ -370,19 +442,53 @@ void RightToolBar::paintEvent(QPaintEvent *e) {
 
 	// The first segment of this row carries the account's unread total, which
 	// the key lookup alone cannot know: RowTexts() returns one translated
-	// string per segment, so the count is substituted here.
+	// string per segment, so the count is substituted here. That segment picks
+	// its own size, while the other two of the same row are measured on their
+	// own texts only - the row group below never sees the unread label, so a
+	// three- or four-digit count cannot shrink "Read" or "Configured".
 	auto row2Texts = RowTexts(kRow2Keys);
-	row2Texts[0] = row2Texts[0].arg(_unreadCount);
+	const auto row2Rects = RowRects(
+		kRow2Left,
+		kRow2Top,
+		kRow2Height,
+		kRow2Gap,
+		kRow2Widths);
+	const auto row2Font = FontOfPixelSize(RowPixelSize(
+		kRow2Height,
+		std::array<QRect, 2>{ row2Rects[1], row2Rects[2] },
+		std::array<QString, 2>{ row2Texts[1], row2Texts[2] }));
+	const auto unread = UnreadSegmentLabel(
+		_unreadCount,
+		row2Rects[0].width(),
+		kRow2Height);
+	row2Texts[0] = unread.text;
+	auto row2Fonts = UniformFonts<3>(row2Font);
+	row2Fonts[0] = FontOfPixelSize(unread.pixelSize);
 	PaintFilterRow(
 		p,
-		RowRects(kRow2Left, kRow2Top, kRow2Height, kRow2Gap, kRow2Widths),
+		row2Rects,
 		row2Texts,
+		row2Fonts,
+		row2Font,
 		_row2Selected,
 		kRow2Style);
+	const auto row3Rects = RowRects(
+		kRow3Left,
+		kRow3Top,
+		kRow3Height,
+		kRow3Gap,
+		kRow3Widths);
+	const auto row3Texts = RowTexts(kRow3Keys);
+	const auto row3Font = FontOfPixelSize(RowPixelSize(
+		kRow3Height,
+		row3Rects,
+		row3Texts));
 	PaintFilterRow(
 		p,
-		RowRects(kRow3Left, kRow3Top, kRow3Height, kRow3Gap, kRow3Widths),
-		RowTexts(kRow3Keys),
+		row3Rects,
+		row3Texts,
+		UniformFonts<4>(row3Font),
+		row3Font,
 		_row3Selected,
 		kRow3Style);
 }
