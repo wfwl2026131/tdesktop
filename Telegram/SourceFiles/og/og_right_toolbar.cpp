@@ -77,10 +77,10 @@ constexpr auto kM2Key = "RightToolBar::M2 placeholder";
 // the one between them.
 constexpr auto kRow2UnreadKey = "RightToolBar::Unread (%1)";
 
-// The count whose label may give way to the overflow form below, and that
-// form. It is only reached when the exact label cannot be laid out at the
-// smallest row size at all: the badge shrinks first and the number itself is
-// never cut in the middle.
+// From this count on the segment shows the overflow form below instead of the
+// exact number - the count is taken out of the label as a whole, never cut in
+// the middle. The form keeps living inside the translated string, so the
+// brackets and the gap still belong to the translation.
 constexpr auto kUnreadOverflowFrom = 100;
 constexpr auto kUnreadOverflowText = "99+";
 
@@ -136,7 +136,12 @@ constexpr auto kRow3Keys = std::array<const char *, 4>{
 constexpr auto kRowMaxPixelSize = 14;
 constexpr auto kRowMinPixelSize = 6;
 constexpr auto kRowHeightSlack = 6;
-constexpr auto kRowTextSlack = 4;
+
+// Our own margin between a label and the edge of its segment, not a value
+// measured on the reference: it only has to absorb the hinting a platform's
+// font adds around the advance. Two px is enough for that and leaves the text
+// itself as the thing that decides when a segment shrinks.
+constexpr auto kRowTextSlack = 2;
 
 struct FilterRowStyle {
 	int radius = 0;
@@ -247,9 +252,9 @@ std::array<QFont, N> UniformFonts(const QFont &font) {
 }
 
 // What the unread segment shows and at which size, decided in one place: the
-// label with the count substituted is shrunk on its own first, and only a
-// count that not even kRowMinPixelSize can hold falls back to the overflow
-// form above.
+// count is shown as it is while it stays below kUnreadOverflowFrom and takes
+// the overflow form from there on, and the size is always the one this
+// segment's own text needs.
 struct UnreadLabel {
 	QString text;
 	int pixelSize = kRowMinPixelSize;
@@ -257,18 +262,13 @@ struct UnreadLabel {
 
 UnreadLabel UnreadSegmentLabel(int count, int width, int rowHeight) {
 	const auto format = OG::Tr::Lookup(kRow2UnreadKey);
-	auto result = UnreadLabel{ .text = format.arg(count) };
-	result.pixelSize = RowTextPixelSize(result.text, width, rowHeight);
-	if (count >= kUnreadOverflowFrom
-		&& !RowTextFits(
-			result.pixelSize,
-			result.text,
-			width,
-			rowHeight)) {
-		result.text = format.arg(kUnreadOverflowText);
-		result.pixelSize = RowTextPixelSize(result.text, width, rowHeight);
-	}
-	return result;
+	const auto text = (count >= kUnreadOverflowFrom)
+		? format.arg(kUnreadOverflowText)
+		: format.arg(count);
+	return UnreadLabel{
+		.text = text,
+		.pixelSize = RowTextPixelSize(text, width, rowHeight),
+	};
 }
 
 // The offset of a vertically centred single line's baseline from the top of
