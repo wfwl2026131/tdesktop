@@ -354,31 +354,33 @@ void RightToolBar::paintEvent(QPaintEvent *e) {
 void RightToolBar::mousePressEvent(QMouseEvent *e) {
 	// Both rows only switch their own selection, as in the reference M1 step:
 	// no toast, no filtering, no live data behind them yet.
-	const auto position = e->pos();
-	const auto row2 = RowRects(
-		kRow2Left,
-		kRow2Top,
-		kRow2Height,
-		kRow2Gap,
-		kRow2Widths);
-	for (auto i = 0; i != int(row2.size()); ++i) {
-		if (row2[i].contains(position)) {
-			_row2Selected = i;
-			update();
-			return;
+	if (e->button() == Qt::LeftButton) {
+		const auto position = e->pos();
+		const auto row2 = RowRects(
+			kRow2Left,
+			kRow2Top,
+			kRow2Height,
+			kRow2Gap,
+			kRow2Widths);
+		for (auto i = 0; i != int(row2.size()); ++i) {
+			if (row2[i].contains(position)) {
+				_row2Selected = i;
+				update();
+				return;
+			}
 		}
-	}
-	const auto row3 = RowRects(
-		kRow3Left,
-		kRow3Top,
-		kRow3Height,
-		kRow3Gap,
-		kRow3Widths);
-	for (auto i = 0; i != int(row3.size()); ++i) {
-		if (row3[i].contains(position)) {
-			_row3Selected = i;
-			update();
-			return;
+		const auto row3 = RowRects(
+			kRow3Left,
+			kRow3Top,
+			kRow3Height,
+			kRow3Gap,
+			kRow3Widths);
+		for (auto i = 0; i != int(row3.size()); ++i) {
+			if (row3[i].contains(position)) {
+				_row3Selected = i;
+				update();
+				return;
+			}
 		}
 	}
 	Ui::RpWidget::mousePressEvent(e);
