@@ -76,8 +76,9 @@ private:
 
 	// The one piece of state the second row keeps: the "New clients"
 	// placeholder is the only segment that does not move the native filter, so
-	// it is the only one that cannot be derived from it. setupFilter() clears
-	// it on any native filter emission, which is what keeps the two in step.
+	// it is the only one that cannot be derived from it. It is dropped when a
+	// segment really switches the filter and when the native filter changes,
+	// which is what keeps the two in step.
 	bool _row3NewSelected = false;
 
 	// Unread total of the current account, painted as a badge after the

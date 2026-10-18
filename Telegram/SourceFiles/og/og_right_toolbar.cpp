@@ -476,13 +476,19 @@ void RightToolBar::setupFilter() {
 	// The native chats filter stays the only owner of this row's state. The
 	// three real segments are not stored at all - row3Selected() recomputes
 	// them from activeChatsFilterCurrent() on every paint - while the "New
-	// clients" placeholder owns one bool and nothing else. Any emission of the
-	// native filter drops that bool, so the placeholder can never keep a
-	// highlight that the native state no longer agrees with. The update() is
-	// unconditional: a folder picked in the native tabs strip has to move the
-	// highlight here as well.
+	// clients" placeholder owns one bool and nothing else.
+	//
+	// That bool is dropped when the native filter really changes, so the
+	// placeholder only ever holds a highlight the native state still agrees
+	// with. distinct_until_changed() is what makes "changes" literal:
+	// setActiveChatsFilter assigns through force_assign()
+	// (window/window_session_controller.cpp:3325), which notifies even for the
+	// same value, and treating such a re-assertion as a change would clear the
+	// placeholder without anything having moved. The update() is unconditional
+	// - a folder picked in the native tabs strip has to move the highlight
+	// here as well.
 	_controller->activeChatsFilter(
-	) | rpl::on_next([=](FilterId) {
+	) | rpl::distinct_until_changed() | rpl::on_next([=](FilterId) {
 		_row3NewSelected = false;
 		update();
 	}, _lifetime);
@@ -511,8 +517,8 @@ void RightToolBar::applyRow3Filter(int segment) {
 	if (segment == kRow3New) {
 		// Placeholder, read-only: the reference never showed what "new
 		// clients" means and the order keeps it out of the native filter, so
-		// only the highlight moves. setupFilter() drops this on the next
-		// native filter emission.
+		// only the highlight moves. setupFilter() drops this when the native
+		// filter changes.
 		_row3NewSelected = true;
 		update();
 		return;
@@ -523,7 +529,12 @@ void RightToolBar::applyRow3Filter(int segment) {
 	if (segment != kRow3All && !id) {
 		// Nothing to switch to. The filter stays where it is, the highlight
 		// stays on the segment it already showed, and the row says why it did
-		// nothing - the same toast the tabs above use.
+		// nothing - the same toast the tabs above use. The override is left
+		// alone here on purpose: the click changed nothing, so the row must not
+		// pretend that it did. On an account with no folders at all this means
+		// the highlight keeps sitting on "All" (or on "New clients") for the
+		// whole session - that is the expected state, not a lost sync, because
+		// the native filter itself never moved.
 		_controller->window().showToast(
 			OG::Tr::Lookup(kMissingFolderKey).arg(
 				OG::Tr::Lookup(kRow3Keys[segment])),
