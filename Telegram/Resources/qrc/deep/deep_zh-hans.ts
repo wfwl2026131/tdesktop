@@ -52,6 +52,10 @@
         <translation>未读</translation>
     </message>
     <message>
+        <source>Unread (%1)</source>
+        <translation>未读 (%1)</translation>
+    </message>
+    <message>
         <source>Read</source>
         <translation>已读</translation>
     </message>

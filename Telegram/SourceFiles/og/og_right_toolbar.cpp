@@ -9,6 +9,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "og/og_right_toolbar.h"
 
 #include "base/object_ptr.h"
+#include "data/data_session.h"
+#include "main/main_session.h"
 #include "og/og_tr.h"
 #include <rpl/producer.h>
 #include "ui/qt_object_factory.h"
@@ -67,6 +69,14 @@ constexpr auto kQuickReplyKey = "RightToolBar::Quick Reply";
 constexpr auto kClientsDisabledKey = "RightToolBar::Client List is disabled";
 constexpr auto kM2Key = "RightToolBar::M2 placeholder";
 
+// The first segment of the first filter row shows the unread total of the
+// current account after its label. One parameterised key keeps the number
+// inside the translated string, so the translation owns the gap between the
+// label and the badge: the reference draws the number in half-width brackets
+// as an ink cluster separate from the two characters, with a wider gap than
+// the one between them.
+constexpr auto kRow2UnreadKey = "RightToolBar::Unread (%1)";
+
 // Geometry of the two filter rows, taken from the measured crop of the
 // reference window and expressed in widget-local logical px. The first row
 // (unread / read / configured) starts at the panel edge, has no gaps and
@@ -101,7 +111,7 @@ const auto kRow3Border = QColor(0xCC, 0xCC, 0xCC);
 // Labels of the two rows, in the order they are painted. The keys resolve
 // through the RightToolBar context of the Deep translation data.
 constexpr auto kRow2Keys = std::array<const char *, 3>{
-	"RightToolBar::Unread",
+	kRow2UnreadKey,
 	"RightToolBar::Read",
 	"RightToolBar::Configured",
 };
@@ -255,6 +265,7 @@ RightToolBar::RightToolBar(
 	resize(kWidth, kHeight);
 	setupTabs();
 	setupActions();
+	setupUnreadCount();
 }
 
 void RightToolBar::setupTabs() {
@@ -305,6 +316,26 @@ void RightToolBar::setupActions() {
 	addAction("RightToolBar::Clear Selection");
 }
 
+void RightToolBar::setupUnreadCount() {
+	// The badge shows the account-wide unread total of this session, the number
+	// the application keeps for its own account badge: Session::unreadBadge()
+	// folds the main chats list with the "count unread messages" and "include
+	// muted" settings, and unreadBadgeChanges() fires whenever that list's
+	// unread state changes. Nothing here is filtered, selected or written - the
+	// label and its badge stay read-only.
+	const auto session = &_controller->session();
+	const auto refresh = [=] {
+		const auto count = session->data().unreadBadge();
+		if (_unreadCount != count) {
+			_unreadCount = count;
+			update();
+		}
+	};
+	refresh();
+	session->data().unreadBadgeChanges(
+	) | rpl::on_next(refresh, _lifetime);
+}
+
 void RightToolBar::resizeEvent(QResizeEvent *e) {
 	Ui::RpWidget::resizeEvent(e);
 
@@ -337,10 +368,15 @@ void RightToolBar::paintEvent(QPaintEvent *e) {
 	p.fillRect(QRect(0, 0, width(), kTopDarkHeight), kTopDarkBg);
 	p.fillRect(QRect(0, kTopDarkLineTop, width(), 1), kTopDarkLineBg);
 
+	// The first segment of this row carries the account's unread total, which
+	// the key lookup alone cannot know: RowTexts() returns one translated
+	// string per segment, so the count is substituted here.
+	auto row2Texts = RowTexts(kRow2Keys);
+	row2Texts[0] = row2Texts[0].arg(_unreadCount);
 	PaintFilterRow(
 		p,
 		RowRects(kRow2Left, kRow2Top, kRow2Height, kRow2Gap, kRow2Widths),
-		RowTexts(kRow2Keys),
+		row2Texts,
 		_row2Selected,
 		kRow2Style);
 	PaintFilterRow(

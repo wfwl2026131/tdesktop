@@ -55,6 +55,7 @@ protected:
 private:
 	void setupTabs();
 	void setupActions();
+	void setupUnreadCount();
 
 	const not_null<Window::SessionController*> _controller;
 	std::vector<not_null<Ui::RoundButton*>> _tabs;
@@ -64,6 +65,13 @@ private:
 	// the first row and "All" on the second one, as in the reference.
 	int _row2Selected = 0;
 	int _row3Selected = 0;
+
+	// Unread total of the current account, painted as a badge after the
+	// "Unread" label of the first filter row. Read-only: it comes from the
+	// session's own account badge and is refreshed by that badge's change
+	// signal.
+	int _unreadCount = 0;
+	rpl::lifetime _lifetime;
 };
 
 } // namespace Deep
