@@ -79,6 +79,10 @@
         <source>New</source>
         <translation>新客</translation>
     </message>
+    <message>
+        <source>No folder of type %1</source>
+        <translation>账号里没有「%1」类型的文件夹</translation>
+    </message>
 </context>
 <context>
     <name>ConsoleWindowQt</name>

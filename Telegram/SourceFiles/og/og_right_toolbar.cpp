@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "og/og_right_toolbar.h"
 
 #include "base/object_ptr.h"
+#include "data/data_chat_filters.h"
 #include "data/data_session.h"
 #include "main/main_session.h"
 #include "og/og_tr.h"
@@ -129,6 +130,18 @@ constexpr auto kRow3Keys = std::array<const char *, 4>{
 	"RightToolBar::New",
 };
 
+// Segments of the second filter row, in paint order. Only the first three can
+// move the chats filter; "New clients" has no meaning we can prove yet and
+// stays a placeholder that moves nothing but the highlight.
+constexpr auto kRow3All = 0;
+constexpr auto kRow3Private = 1;
+constexpr auto kRow3Group = 2;
+constexpr auto kRow3New = 3;
+
+// Reported when a segment stands for a folder the account does not have: the
+// row only maps onto folders that already exist, it never creates one.
+constexpr auto kMissingFolderKey = "RightToolBar::No folder of type %1";
+
 // The largest pixel size whose line height leaves kRowHeightSlack inside the
 // row and whose labels still fit their own segment. Measuring at paint time
 // keeps the gate honest for whichever font the platform picks at that pixel
@@ -168,6 +181,56 @@ const auto kRow3Style = FilterRowStyle{
 	.selectedFg = kRow3SelectedFg,
 	.border = kRow3Border,
 };
+
+// The folder of the account that one real segment of the second row stands
+// for, or FilterId(0) when the account has no such folder. 0 is never a valid
+// answer for "Private" or "Group": it is the built-in "All chats" list, which
+// the caller asks for by means of kRow3All only.
+FilterId FolderIdForSegment(
+		const std::vector<Data::ChatFilter> &list,
+		int segment) {
+	if (segment == kRow3All) {
+		return FilterId(0);
+	}
+
+	// A folder matches only when its type is exactly the set the order names.
+	// The comparisons below are the same two shapes the native code already
+	// makes on a folder's flags - a single flag in a boolean context
+	// (data/data_chat_filters.cpp:381) and a flag test against a combination
+	// (ui/filter_icons.cpp:307-318) - spelled out per flag, because the folder
+	// has to match the pair and carry nothing else. No bit arithmetic of our
+	// own, and no comparison between two flag combinations.
+	using Flag = Data::ChatFilter::Flag;
+	const auto has = [](Data::ChatFilter::Flags flags, Flag single) {
+		return !!(flags & single);
+	};
+	const auto people = [&](Data::ChatFilter::Flags flags) {
+		return has(flags, Flag::Contacts) && has(flags, Flag::NonContacts);
+	};
+	for (const auto &filter : list) {
+		const auto flags = filter.flags();
+		// "Private" is the pair alone. tdesktop's own icon classifier also
+		// calls a Contacts-only or a NonContacts-only folder private
+		// (ui/filter_icons.cpp:317-321); those single-type folders are left
+		// out here so they stay free for "New clients" later. A folder that
+		// adds a third type - a bot next to people, say - is a different kind
+		// of folder and is left alone too.
+		const auto isPrivate = people(flags)
+			&& !has(flags, Flag::Groups)
+			&& !has(flags, Flag::Channels)
+			&& !has(flags, Flag::Bots);
+		const auto isGroup = has(flags, Flag::Groups)
+			&& !has(flags, Flag::Contacts)
+			&& !has(flags, Flag::NonContacts)
+			&& !has(flags, Flag::Channels)
+			&& !has(flags, Flag::Bots);
+		const auto matches = (segment == kRow3Private) ? isPrivate : isGroup;
+		if (matches) {
+			return filter.id();
+		}
+	}
+	return FilterId(0);
+}
 
 // Segment rectangles of one row: `left` is the widget-local x of the first
 // segment, `gap` the space left between the segments.
@@ -338,6 +401,7 @@ RightToolBar::RightToolBar(
 	setupTabs();
 	setupActions();
 	setupUnreadCount();
+	setupFilter();
 }
 
 void RightToolBar::setupTabs() {
@@ -406,6 +470,69 @@ void RightToolBar::setupUnreadCount() {
 	refresh();
 	session->data().unreadBadgeChanges(
 	) | rpl::on_next(refresh, _lifetime);
+}
+
+void RightToolBar::setupFilter() {
+	// The native chats filter stays the only owner of this row's state. The
+	// three real segments are not stored at all - row3Selected() recomputes
+	// them from activeChatsFilterCurrent() on every paint - while the "New
+	// clients" placeholder owns one bool and nothing else. Any emission of the
+	// native filter drops that bool, so the placeholder can never keep a
+	// highlight that the native state no longer agrees with. The update() is
+	// unconditional: a folder picked in the native tabs strip has to move the
+	// highlight here as well.
+	_controller->activeChatsFilter(
+	) | rpl::on_next([=](FilterId) {
+		_row3NewSelected = false;
+		update();
+	}, _lifetime);
+}
+
+int RightToolBar::row3Selected() const {
+	if (_row3NewSelected) {
+		return kRow3New;
+	}
+	const auto current = _controller->activeChatsFilterCurrent();
+	if (!current) {
+		return kRow3All;
+	}
+	const auto &list = _controller->session().data().chatsFilters().list();
+	if (current == FolderIdForSegment(list, kRow3Private)) {
+		return kRow3Private;
+	} else if (current == FolderIdForSegment(list, kRow3Group)) {
+		return kRow3Group;
+	}
+	// A folder this row does not represent (any other folder of the account):
+	// no segment is active, instead of claiming one of them.
+	return -1;
+}
+
+void RightToolBar::applyRow3Filter(int segment) {
+	if (segment == kRow3New) {
+		// Placeholder, read-only: the reference never showed what "new
+		// clients" means and the order keeps it out of the native filter, so
+		// only the highlight moves. setupFilter() drops this on the next
+		// native filter emission.
+		_row3NewSelected = true;
+		update();
+		return;
+	}
+	const auto id = FolderIdForSegment(
+		_controller->session().data().chatsFilters().list(),
+		segment);
+	if (segment != kRow3All && !id) {
+		// Nothing to switch to. The filter stays where it is, the highlight
+		// stays on the segment it already showed, and the row says why it did
+		// nothing - the same toast the tabs above use.
+		_controller->window().showToast(
+			OG::Tr::Lookup(kMissingFolderKey).arg(
+				OG::Tr::Lookup(kRow3Keys[segment])),
+			kToastDuration);
+		return;
+	}
+	_row3NewSelected = false;
+	_controller->setActiveChatsFilter(id);
+	update();
 }
 
 void RightToolBar::resizeEvent(QResizeEvent *e) {
@@ -483,19 +610,22 @@ void RightToolBar::paintEvent(QPaintEvent *e) {
 		kRow3Height,
 		row3Rects,
 		row3Texts));
+	// The active segment is read from the native filter, not stored here: -1
+	// means the native filter is a folder this row does not stand for.
+	const auto row3Active = row3Selected();
 	PaintFilterRow(
 		p,
 		row3Rects,
 		row3Texts,
 		UniformFonts<4>(row3Font),
 		row3Font,
-		_row3Selected,
+		row3Active,
 		kRow3Style);
 }
 
 void RightToolBar::mousePressEvent(QMouseEvent *e) {
-	// Both rows only switch their own selection, as in the reference M1 step:
-	// no toast, no filtering, no live data behind them yet.
+	// The first row still only switches its own selection: it is not part of
+	// this step. The second row acts - see applyRow3Filter().
 	if (e->button() == Qt::LeftButton) {
 		const auto position = e->pos();
 		const auto row2 = RowRects(
@@ -519,8 +649,7 @@ void RightToolBar::mousePressEvent(QMouseEvent *e) {
 			kRow3Widths);
 		for (auto i = 0; i != int(row3.size()); ++i) {
 			if (row3[i].contains(position)) {
-				_row3Selected = i;
-				update();
+				applyRow3Filter(i);
 				return;
 			}
 		}
