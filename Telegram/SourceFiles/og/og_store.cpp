@@ -35,6 +35,8 @@ const auto kTodosKey = "todos";
 const auto kTopicsKey = "topics";
 const auto kArchivesKey = "archives";
 const auto kTranslationsKey = "translations";
+const auto kNextTodoIdKey = "next_todo_id";
+const auto kNextArchiveIdKey = "next_archive_id";
 
 [[nodiscard]] QString Key(const char *name) {
 	return QString::fromLatin1(name);
@@ -289,22 +291,6 @@ void Write(QJsonObject &object, const char *name, const QString &value) {
 	return result;
 }
 
-[[nodiscard]] qint64 NextTodoId(const std::vector<TodoEntry> &rows) {
-	auto result = qint64(0);
-	for (const auto &row : rows) {
-		result = std::max(result, row.id);
-	}
-	return result + 1;
-}
-
-[[nodiscard]] qint64 NextArchiveId(const std::vector<TodoArchive> &rows) {
-	auto result = qint64(0);
-	for (const auto &row : rows) {
-		result = std::max(result, row.archive_id);
-	}
-	return result + 1;
-}
-
 } // namespace
 
 Store::Store() {
@@ -365,6 +351,8 @@ bool Store::load() {
 	_translations.clear();
 	_translationByKey.clear();
 	_dirty = false;
+	_nextTodoId = 1;
+	_nextArchiveId = 1;
 
 	auto file = QFile(_path);
 	if (!file.exists()) {
@@ -384,6 +372,12 @@ bool Store::load() {
 		return false;
 	}
 	const auto root = document.object();
+
+	// A document written before the watermarks existed has none: the loops
+	// below raise them to max(id) + 1 while the rows are read back, which is
+	// the same value the old max+1 allocation would have used.
+	_nextTodoId = std::max(ReadInt64(root, kNextTodoIdKey), qint64(1));
+	_nextArchiveId = std::max(ReadInt64(root, kNextArchiveIdKey), qint64(1));
 
 	const auto todos = root.value(Key(kTodosKey)).toArray();
 	for (const auto &value : todos) {
@@ -485,6 +479,11 @@ void Store::writeToDisk() {
 	}
 	root.insert(Key(kTranslationsKey), translations);
 
+	// The watermarks are part of the document, not of the tables: they keep
+	// an id that a removed row used to occupy from being allocated again.
+	Write(root, kNextTodoIdKey, _nextTodoId);
+	Write(root, kNextArchiveIdKey, _nextArchiveId);
+
 	const auto data = QJsonDocument(root).toJson(QJsonDocument::Indented);
 
 	// QSaveFile writes a temporary file next to the target and replaces the
@@ -529,11 +528,16 @@ void Store::rememberTodo(const TodoEntry &entry) {
 	}
 
 	if (!row.id) {
-		row.id = NextTodoId(_todos);
-	} else if (const auto j = _todoById.find(row.id); j != _todoById.end()) {
-		// The primary key is taken by another unique key: INSERT OR REPLACE
-		// semantics, the old row is dropped.
-		_todos.erase(_todos.begin() + std::ptrdiff_t(j->second));
+		row.id = _nextTodoId++;
+	} else {
+		// The watermark only grows, so the id of a removed row is never handed
+		// out again: from_todo_topic.todo_id points at it.
+		_nextTodoId = std::max(_nextTodoId, row.id + 1);
+		if (const auto j = _todoById.find(row.id); j != _todoById.end()) {
+			// The primary key is taken by another unique key: INSERT OR
+			// REPLACE semantics, the old row is dropped.
+			_todos.erase(_todos.begin() + std::ptrdiff_t(j->second));
+		}
 	}
 	if (!row.created_at) {
 		row.created_at = now;
@@ -592,10 +596,13 @@ void Store::rememberArchive(const TodoArchive &entry) {
 	}
 
 	if (!row.archive_id) {
-		row.archive_id = NextArchiveId(_archives);
-	} else if (const auto j = _archiveById.find(row.archive_id);
-		j != _archiveById.end()) {
-		_archives.erase(_archives.begin() + std::ptrdiff_t(j->second));
+		row.archive_id = _nextArchiveId++;
+	} else {
+		_nextArchiveId = std::max(_nextArchiveId, row.archive_id + 1);
+		if (const auto j = _archiveById.find(row.archive_id);
+			j != _archiveById.end()) {
+			_archives.erase(_archives.begin() + std::ptrdiff_t(j->second));
+		}
 	}
 	if (!row.created_at) {
 		row.created_at = now;

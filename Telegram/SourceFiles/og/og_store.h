@@ -36,7 +36,8 @@ namespace OG {
 //
 //   INTEGER PRIMARY KEY AUTOINCREMENT -> qint64, zero means "assign on insert"
 //   TEXT                              -> QString, including the id columns
-//   INTEGER                           -> int
+//   INTEGER (seconds, message id)      -> qint64
+//   INTEGER (small enum, count)        -> int
 //   integer default 1/2               -> int, the DDL uses plain integers even
 //                                        where the value is a flag
 //   bool                              -> bool (only `translation.is_out`)
@@ -212,6 +213,13 @@ private:
 	// True while the document differs from what is on disk. A store that was
 	// never modified never writes, so a read-only run leaves no file behind.
 	bool _dirty = false;
+
+	// The id watermarks, our equivalent of sqlite_sequence for AUTOINCREMENT:
+	// they only ever grow, so the id of a removed row is never handed out a
+	// second time. from_todo_topic.todo_id points at from_todo_list.id, and a
+	// reused id would attach old topics to a brand new row.
+	qint64 _nextTodoId = 1;
+	qint64 _nextArchiveId = 1;
 
 	base::Timer _saveTimer;
 
