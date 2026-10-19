@@ -2399,6 +2399,8 @@ PRIVATE
     og/og_seat_bar.h
     og/og_seat_grid.cpp
     og/og_seat_grid.h
+    og/og_store.cpp
+    og/og_store.h
     og/og_tr.cpp
     og/og_tr.h
 )
