@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <cstddef>
 #include <map>
 #include <optional>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -23,54 +24,76 @@ namespace OG {
 
 // Local data layer of the fork.
 //
-// The reference client keeps this data in SQLite; our build has no SQL module
-// linked, so the same four tables are stored as a single JSON document under
-// <working dir>/og/store.json and indexed in memory. Storage may be swapped
-// later without touching the callers.
+// The reference client keeps this data in SQLite (tdata/deep.db); our build
+// has no SQL module linked, so the same tables are stored as one JSON document
+// under <working dir>/og/store.json and indexed in memory. Storage may be
+// swapped later without touching the callers.
 //
-// The member names below are the column names of the reference schema,
-// verbatim and in snake_case, so a field can be matched between the binary,
-// the JSON keys and this header without any translation step. The structs are
-// plain data on purpose: no logic, no validation beyond the identity keys.
+// Every struct below mirrors one table of the reference DDL, column by column,
+// in the order the columns are declared, with the column names verbatim and in
+// snake_case. A field can therefore be matched between the DDL, the JSON keys
+// and this header without any translation step. Types follow the DDL too:
+//
+//   INTEGER PRIMARY KEY AUTOINCREMENT -> qint64, zero means "assign on insert"
+//   TEXT                              -> QString, including the id columns
+//   INTEGER                           -> int
+//   integer default 1/2               -> int, the DDL uses plain integers even
+//                                        where the value is a flag
+//   bool                              -> bool (only `translation.is_out`)
+//
+// Defaults are the DDL defaults, so a default constructed entry is the same row
+// the database would create from a statement that names no columns.
 
-// Todo states, as in the reference: 1 = pending, 2 = done, 3 = archived.
-inline constexpr auto kTodoStatePending = 1;
-inline constexpr auto kTodoStateDone = 2;
-inline constexpr auto kTodoStateArchived = 3;
+// Todo status values of from_todo_list.status.
+inline constexpr auto kTodoStatusPending = 1;
+inline constexpr auto kTodoStatusDone = 2;
+inline constexpr auto kTodoStatusArchived = 3;
 
-// Table "from_todo_list".
+// Todo priority values of from_todo_list.priority.
+inline constexpr auto kTodoPriorityNormal = 1;
+inline constexpr auto kTodoPriorityImportant = 2;
+inline constexpr auto kTodoPriorityUrgent = 3;
+
+// Table "from_todo_list", 28 columns, UNIQUE(from_id, peer_id, receiver_id).
 struct TodoEntry {
-	qint64 id = 0;
-	qint64 from_id = 0;
-	QString from_name;
-	QString from_avatar;
-	qint64 peer_id = 0;
-	QString peer_name;
-	QString peer_avatar;
-	qint64 receiver_id = 0;
-	int chat_type = 0;
-	int msg_type = 0;
+	qint64 id = 0; // INTEGER PRIMARY KEY AUTOINCREMENT
+	QString from_id; // TEXT, the client
+	QString from_name; // the client's nickname
+	QString from_avatar; // the client's avatar
+	QString peer_id; // TEXT, the conversation
+	QString peer_name; // the conversation title
+	QString peer_avatar; // the conversation avatar
+	QString receiver_id = QString::fromLatin1("0");
+	int chat_type = 1; // 1 = private, 2 = group
+	int msg_type = 1; // 1 = message, 2 = mention
 	int unread_count = 0;
-	int from_count = 0;
-	bool is_new = false;
-
-	// Not a column of the reference table. The state has to be stored
-	// somewhere for setTodoState() to mean anything, and none of the thirteen
-	// columns above is a state: is_new is a flag of its own, and the archive
-	// table is a separate list. Zero means "not specified" and never
-	// overwrites a state already known. Written as the "state" JSON key.
-	int state = 0;
+	int from_count = 0; // how much this client has sent in total
+	int is_new = 1; // 1 = new client, 2 = not new (the DDL says so)
+	QString title;
+	qint64 msg_id = 0;
+	QString msg; // the description
+	QString media; // the media file
+	int priority = 1; // 1 = normal, 2 = important, 3 = urgent
+	int status = 1; // 1 = pending, 2 = done, 3 = archived
+	QString reserve1;
+	QString reserve2;
+	QString reserve3;
+	QString reserve4; // the DDL notes this one as fromUsername
+	QString reserve5;
+	QString reserve6;
+	qint64 last_msg_at = 0;
+	qint64 created_at = 0;
+	qint64 updated_at = 0;
 };
 
-// Table "from_todo_topic", UNIQUE(todo_id, chat_peer_id): writing the same
-// pair twice updates the row instead of appending another one.
+// Table "from_todo_topic", 14 columns, UNIQUE(todo_id, chat_peer_id).
 struct TodoTopic {
-	qint64 todo_id = 0;
-	qint64 chat_peer_id = 0;
-	qint64 topic_id = 0;
-	qint64 dispatcher_id = 0;
-	bool is_blacklist = false;
-	QString tag_group;
+	qint64 todo_id = 0; // INTEGER, the from_todo_list.id it belongs to
+	QString chat_peer_id;
+	QString topic_id;
+	QString dispatcher_id;
+	int is_blacklist = 0;
+	int tag_group = 0; // which client group; unused in the reference so far
 	QString reserve1;
 	QString reserve2;
 	QString reserve3;
@@ -81,14 +104,14 @@ struct TodoTopic {
 	qint64 updated_at = 0;
 };
 
-// Table "from_todo_archive".
+// Table "from_todo_archive", 15 columns, UNIQUE(peer_id, msg_id, receiver_id).
 struct TodoArchive {
-	qint64 archive_id = 0;
-	qint64 from_id = 0;
-	qint64 peer_id = 0;
-	qint64 receiver_id = 0;
-	int chat_type = 0;
-	int msg_type = 0;
+	qint64 archive_id = 0; // INTEGER PRIMARY KEY AUTOINCREMENT
+	QString from_id;
+	QString peer_id;
+	QString receiver_id; // private chats need it: peer_id is not unique alone
+	int chat_type = 1;
+	int msg_type = 1;
 	QString title;
 	qint64 msg_id = 0;
 	QString msg;
@@ -96,16 +119,17 @@ struct TodoArchive {
 	QString reserve1;
 	QString reserve2;
 	QString reserve3;
+	qint64 created_at = 0;
+	qint64 topic_msg_id = 0; // the message id inside the topic group
 };
 
-// Table "translation", PRIMARY KEY (input, lg_to): one row per source text
-// and target language, a second write overwrites the first.
+// Table "translation", 10 columns, PRIMARY KEY (input, lg_to).
 struct TranslationEntry {
 	QString input;
 	QString output;
 	QString lg_from;
 	QString lg_to;
-	qint64 chat_id = 0;
+	QString chat_id; // TEXT in the DDL, not an integer
 	qint64 msg_id = 0;
 	bool is_out = false;
 	qint64 team_id = 0;
@@ -160,17 +184,26 @@ public:
 	int pruneTranslation(qint64 olderThanSeconds);
 
 private:
-	using TopicKey = std::pair<qint64, qint64>;
-	using TranslationKey = std::pair<QString, QString>;
+	// The unique keys of the DDL, in column order.
+	using TodoKey = std::tuple<QString, QString, QString>; // from, peer, recv
+	using TopicKey = std::pair<qint64, QString>; // todo, chat_peer
+	using ArchiveKey = std::tuple<QString, qint64, QString>; // peer, msg, recv
+	using TranslationKey = std::pair<QString, QString>; // input, lg_to
 
 	void scheduleSave();
 	void writeToDisk();
 	void touch();
 
 	void rememberTodo(const TodoEntry &entry);
-	void rememberTopic(const TodoTopic &topic);
+	void rememberTopic(const TodoTopic &entry);
 	void rememberArchive(const TodoArchive &entry);
 	void rememberTranslation(const TranslationEntry &entry);
+
+	void rebuildTodoIndexes();
+	void rebuildArchiveIndexes();
+
+	[[nodiscard]] TodoKey todoKey(const TodoEntry &entry) const;
+	[[nodiscard]] ArchiveKey archiveKey(const TodoArchive &entry) const;
 
 	[[nodiscard]] QString path() const;
 
@@ -183,16 +216,18 @@ private:
 	base::Timer _saveTimer;
 
 	std::vector<TodoEntry> _todos;
-	std::map<qint64, std::size_t> _todoIndex;
+	std::map<qint64, std::size_t> _todoById;
+	std::map<TodoKey, std::size_t> _todoByKey;
 
 	std::vector<TodoTopic> _topics;
-	std::map<TopicKey, std::size_t> _topicIndex;
+	std::map<TopicKey, std::size_t> _topicByKey;
 
 	std::vector<TodoArchive> _archives;
-	std::map<qint64, std::size_t> _archiveIndex;
+	std::map<qint64, std::size_t> _archiveById;
+	std::map<ArchiveKey, std::size_t> _archiveByKey;
 
 	std::vector<TranslationEntry> _translations;
-	std::map<TranslationKey, std::size_t> _translationIndex;
+	std::map<TranslationKey, std::size_t> _translationByKey;
 };
 
 } // namespace OG

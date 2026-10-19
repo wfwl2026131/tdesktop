@@ -20,6 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QJsonParseError>
 #include <QtCore/QSaveFile>
 
+#include <algorithm>
 #include <cstddef>
 
 namespace OG {
@@ -39,10 +40,9 @@ const auto kTranslationsKey = "translations";
 	return QString::fromLatin1(name);
 }
 
-// Readers are deliberately forgiving. The reference keeps types in SQLite
-// column declarations we have not proven, so a value that arrives as a number
-// or as a bool where a string is expected is still accepted, and a value that
-// is missing or of an unexpected type falls back to the default instead of
+// Readers are deliberately forgiving: a value that arrives as a number or as
+// a bool where the DDL says TEXT is still accepted, and a value that is
+// missing or of an unexpected type falls back to the default instead of
 // dropping the whole row.
 [[nodiscard]] qint64 ReadInt64(const QJsonObject &object, const char *name) {
 	const auto value = object.value(Key(name));
@@ -83,8 +83,8 @@ const auto kTranslationsKey = "translations";
 	if (value.isString()) {
 		return value.toString();
 	} else if (value.isDouble()) {
-		// Spare "reserve" columns have no proven type; keeping a number as a
-		// number in text form is closer to the source than dropping it.
+		// The id columns are TEXT in the DDL and hold numbers in practice, so
+		// a number read back as text is the same value the reference stores.
 		const auto number = value.toDouble();
 		const auto asInteger = static_cast<qint64>(number);
 		if (static_cast<double>(asInteger) == number) {
@@ -130,26 +130,54 @@ void Write(QJsonObject &object, const char *name, const QString &value) {
 	Write(result, "unread_count", entry.unread_count);
 	Write(result, "from_count", entry.from_count);
 	Write(result, "is_new", entry.is_new);
-	Write(result, "state", entry.state);
+	Write(result, "title", entry.title);
+	Write(result, "msg_id", entry.msg_id);
+	Write(result, "msg", entry.msg);
+	Write(result, "media", entry.media);
+	Write(result, "priority", entry.priority);
+	Write(result, "status", entry.status);
+	Write(result, "reserve1", entry.reserve1);
+	Write(result, "reserve2", entry.reserve2);
+	Write(result, "reserve3", entry.reserve3);
+	Write(result, "reserve4", entry.reserve4);
+	Write(result, "reserve5", entry.reserve5);
+	Write(result, "reserve6", entry.reserve6);
+	Write(result, "last_msg_at", entry.last_msg_at);
+	Write(result, "created_at", entry.created_at);
+	Write(result, "updated_at", entry.updated_at);
 	return result;
 }
 
 [[nodiscard]] TodoEntry TodoFromJson(const QJsonObject &object) {
 	auto result = TodoEntry();
 	result.id = ReadInt64(object, "id");
-	result.from_id = ReadInt64(object, "from_id");
+	result.from_id = ReadString(object, "from_id");
 	result.from_name = ReadString(object, "from_name");
 	result.from_avatar = ReadString(object, "from_avatar");
-	result.peer_id = ReadInt64(object, "peer_id");
+	result.peer_id = ReadString(object, "peer_id");
 	result.peer_name = ReadString(object, "peer_name");
 	result.peer_avatar = ReadString(object, "peer_avatar");
-	result.receiver_id = ReadInt64(object, "receiver_id");
+	result.receiver_id = ReadString(object, "receiver_id");
 	result.chat_type = ReadInt(object, "chat_type");
 	result.msg_type = ReadInt(object, "msg_type");
 	result.unread_count = ReadInt(object, "unread_count");
 	result.from_count = ReadInt(object, "from_count");
-	result.is_new = ReadBool(object, "is_new");
-	result.state = ReadInt(object, "state");
+	result.is_new = ReadInt(object, "is_new");
+	result.title = ReadString(object, "title");
+	result.msg_id = ReadInt64(object, "msg_id");
+	result.msg = ReadString(object, "msg");
+	result.media = ReadString(object, "media");
+	result.priority = ReadInt(object, "priority");
+	result.status = ReadInt(object, "status");
+	result.reserve1 = ReadString(object, "reserve1");
+	result.reserve2 = ReadString(object, "reserve2");
+	result.reserve3 = ReadString(object, "reserve3");
+	result.reserve4 = ReadString(object, "reserve4");
+	result.reserve5 = ReadString(object, "reserve5");
+	result.reserve6 = ReadString(object, "reserve6");
+	result.last_msg_at = ReadInt64(object, "last_msg_at");
+	result.created_at = ReadInt64(object, "created_at");
+	result.updated_at = ReadInt64(object, "updated_at");
 	return result;
 }
 
@@ -175,11 +203,11 @@ void Write(QJsonObject &object, const char *name, const QString &value) {
 [[nodiscard]] TodoTopic TopicFromJson(const QJsonObject &object) {
 	auto result = TodoTopic();
 	result.todo_id = ReadInt64(object, "todo_id");
-	result.chat_peer_id = ReadInt64(object, "chat_peer_id");
-	result.topic_id = ReadInt64(object, "topic_id");
-	result.dispatcher_id = ReadInt64(object, "dispatcher_id");
-	result.is_blacklist = ReadBool(object, "is_blacklist");
-	result.tag_group = ReadString(object, "tag_group");
+	result.chat_peer_id = ReadString(object, "chat_peer_id");
+	result.topic_id = ReadString(object, "topic_id");
+	result.dispatcher_id = ReadString(object, "dispatcher_id");
+	result.is_blacklist = ReadInt(object, "is_blacklist");
+	result.tag_group = ReadInt(object, "tag_group");
 	result.reserve1 = ReadString(object, "reserve1");
 	result.reserve2 = ReadString(object, "reserve2");
 	result.reserve3 = ReadString(object, "reserve3");
@@ -206,15 +234,17 @@ void Write(QJsonObject &object, const char *name, const QString &value) {
 	Write(result, "reserve1", entry.reserve1);
 	Write(result, "reserve2", entry.reserve2);
 	Write(result, "reserve3", entry.reserve3);
+	Write(result, "created_at", entry.created_at);
+	Write(result, "topic_msg_id", entry.topic_msg_id);
 	return result;
 }
 
 [[nodiscard]] TodoArchive ArchiveFromJson(const QJsonObject &object) {
 	auto result = TodoArchive();
 	result.archive_id = ReadInt64(object, "archive_id");
-	result.from_id = ReadInt64(object, "from_id");
-	result.peer_id = ReadInt64(object, "peer_id");
-	result.receiver_id = ReadInt64(object, "receiver_id");
+	result.from_id = ReadString(object, "from_id");
+	result.peer_id = ReadString(object, "peer_id");
+	result.receiver_id = ReadString(object, "receiver_id");
 	result.chat_type = ReadInt(object, "chat_type");
 	result.msg_type = ReadInt(object, "msg_type");
 	result.title = ReadString(object, "title");
@@ -224,6 +254,8 @@ void Write(QJsonObject &object, const char *name, const QString &value) {
 	result.reserve1 = ReadString(object, "reserve1");
 	result.reserve2 = ReadString(object, "reserve2");
 	result.reserve3 = ReadString(object, "reserve3");
+	result.created_at = ReadInt64(object, "created_at");
+	result.topic_msg_id = ReadInt64(object, "topic_msg_id");
 	return result;
 }
 
@@ -248,7 +280,7 @@ void Write(QJsonObject &object, const char *name, const QString &value) {
 	result.output = ReadString(object, "output");
 	result.lg_from = ReadString(object, "lg_from");
 	result.lg_to = ReadString(object, "lg_to");
-	result.chat_id = ReadInt64(object, "chat_id");
+	result.chat_id = ReadString(object, "chat_id");
 	result.msg_id = ReadInt64(object, "msg_id");
 	result.is_out = ReadBool(object, "is_out");
 	result.team_id = ReadInt64(object, "team_id");
@@ -257,11 +289,27 @@ void Write(QJsonObject &object, const char *name, const QString &value) {
 	return result;
 }
 
+[[nodiscard]] qint64 NextTodoId(const std::vector<TodoEntry> &rows) {
+	auto result = qint64(0);
+	for (const auto &row : rows) {
+		result = std::max(result, row.id);
+	}
+	return result + 1;
+}
+
+[[nodiscard]] qint64 NextArchiveId(const std::vector<TodoArchive> &rows) {
+	auto result = qint64(0);
+	for (const auto &row : rows) {
+		result = std::max(result, row.archive_id);
+	}
+	return result + 1;
+}
+
 } // namespace
 
 Store::Store() {
 	_path = path();
-	_saveTimer.setCallback([=] {
+	_saveTimer.setCallback([this] {
 		writeToDisk();
 	});
 }
@@ -279,15 +327,43 @@ QString Store::path() const {
 	return cWorkingDir() + QString::fromLatin1("og/store.json");
 }
 
+Store::TodoKey Store::todoKey(const TodoEntry &entry) const {
+	return TodoKey{ entry.from_id, entry.peer_id, entry.receiver_id };
+}
+
+Store::ArchiveKey Store::archiveKey(const TodoArchive &entry) const {
+	return ArchiveKey{ entry.peer_id, entry.msg_id, entry.receiver_id };
+}
+
+void Store::rebuildTodoIndexes() {
+	_todoById.clear();
+	_todoByKey.clear();
+	for (auto i = std::size_t(0); i != _todos.size(); ++i) {
+		_todoById.emplace(_todos[i].id, i);
+		_todoByKey.emplace(todoKey(_todos[i]), i);
+	}
+}
+
+void Store::rebuildArchiveIndexes() {
+	_archiveById.clear();
+	_archiveByKey.clear();
+	for (auto i = std::size_t(0); i != _archives.size(); ++i) {
+		_archiveById.emplace(_archives[i].archive_id, i);
+		_archiveByKey.emplace(archiveKey(_archives[i]), i);
+	}
+}
+
 bool Store::load() {
 	_todos.clear();
-	_todoIndex.clear();
+	_todoById.clear();
+	_todoByKey.clear();
 	_topics.clear();
-	_topicIndex.clear();
+	_topicByKey.clear();
 	_archives.clear();
-	_archiveIndex.clear();
+	_archiveById.clear();
+	_archiveByKey.clear();
 	_translations.clear();
-	_translationIndex.clear();
+	_translationByKey.clear();
 	_dirty = false;
 
 	auto file = QFile(_path);
@@ -311,18 +387,16 @@ bool Store::load() {
 
 	const auto todos = root.value(Key(kTodosKey)).toArray();
 	for (const auto &value : todos) {
-		const auto object = value.toObject();
-		const auto entry = TodoFromJson(object);
-		if (!entry.id) {
-			continue; // A row without its identity key is not addressable.
+		const auto entry = TodoFromJson(value.toObject());
+		if (entry.from_id.isEmpty() && entry.peer_id.isEmpty()) {
+			continue; // A row with no side of the unique key is not a todo.
 		}
 		rememberTodo(entry);
 	}
 
 	const auto topics = root.value(Key(kTopicsKey)).toArray();
 	for (const auto &value : topics) {
-		const auto object = value.toObject();
-		const auto entry = TopicFromJson(object);
+		const auto entry = TopicFromJson(value.toObject());
 		if (!entry.todo_id) {
 			continue;
 		}
@@ -331,9 +405,8 @@ bool Store::load() {
 
 	const auto archives = root.value(Key(kArchivesKey)).toArray();
 	for (const auto &value : archives) {
-		const auto object = value.toObject();
-		const auto entry = ArchiveFromJson(object);
-		if (!entry.archive_id) {
+		const auto entry = ArchiveFromJson(value.toObject());
+		if (entry.peer_id.isEmpty() && !entry.msg_id) {
 			continue;
 		}
 		rememberArchive(entry);
@@ -341,10 +414,9 @@ bool Store::load() {
 
 	const auto translations = root.value(Key(kTranslationsKey)).toArray();
 	for (const auto &value : translations) {
-		const auto object = value.toObject();
-		const auto entry = TranslationFromJson(object);
+		const auto entry = TranslationFromJson(value.toObject());
 		if (entry.input.isEmpty() || entry.lg_to.isEmpty()) {
-			continue;
+			continue; // Both halves of the primary key are required.
 		}
 		rememberTranslation(entry);
 	}
@@ -352,10 +424,11 @@ bool Store::load() {
 }
 
 void Store::save() {
-	// The table mutation may come from any thread, the document may not: the
-	// hop is the only thread boundary this class has. The weak pointer of
-	// base::has_weak_ptr drops the callback if the store is gone by then.
-	crl::on_main(this, [=] {
+	// save() is the one entry point that tolerates a foreign thread: it hops
+	// to the main thread before it touches the timer or the document. The
+	// weak pointer of base::has_weak_ptr drops the callback if the store is
+	// gone by then.
+	crl::on_main(this, [this] {
 		scheduleSave();
 	});
 }
@@ -433,79 +506,139 @@ void Store::writeToDisk() {
 }
 
 void Store::rememberTodo(const TodoEntry &entry) {
-	const auto i = _todoIndex.find(entry.id);
-	if (i != _todoIndex.end()) {
-		auto merged = entry;
-		if (!merged.state) {
-			// Zero means "not specified": a plain re-upsert of a row must not
-			// wipe a state that was set through setTodoState().
-			merged.state = _todos[i->second].state;
+	auto row = entry;
+	const auto now = QDateTime::currentSecsSinceEpoch();
+
+	if (const auto i = _todoByKey.find(todoKey(row)); i != _todoByKey.end()) {
+		// UNIQUE(from_id, peer_id, receiver_id): the row is updated in place,
+		// the primary key it already had is kept when the caller sends none.
+		const auto index = i->second;
+		const auto existing = _todos[index];
+		if (!row.id) {
+			row.id = existing.id;
 		}
-		_todos[i->second] = std::move(merged);
+		if (!row.created_at) {
+			row.created_at = existing.created_at;
+		}
+		if (!row.updated_at) {
+			row.updated_at = now;
+		}
+		_todos[index] = row;
+		rebuildTodoIndexes();
 		return;
 	}
-	_todoIndex.emplace(entry.id, _todos.size());
-	_todos.push_back(entry);
+
+	if (!row.id) {
+		row.id = NextTodoId(_todos);
+	} else if (const auto j = _todoById.find(row.id); j != _todoById.end()) {
+		// The primary key is taken by another unique key: INSERT OR REPLACE
+		// semantics, the old row is dropped.
+		_todos.erase(_todos.begin() + std::ptrdiff_t(j->second));
+	}
+	if (!row.created_at) {
+		row.created_at = now;
+	}
+	if (!row.updated_at) {
+		row.updated_at = now;
+	}
+	_todos.push_back(row);
+	rebuildTodoIndexes();
 }
 
 void Store::rememberTopic(const TodoTopic &entry) {
-	const auto key = TopicKey{ entry.todo_id, entry.chat_peer_id };
-	const auto i = _topicIndex.find(key);
-	if (i != _topicIndex.end()) {
-		_topics[i->second] = entry;
+	auto row = entry;
+	const auto now = QDateTime::currentSecsSinceEpoch();
+	const auto key = TopicKey{ row.todo_id, row.chat_peer_id };
+	if (const auto i = _topicByKey.find(key); i != _topicByKey.end()) {
+		const auto index = i->second;
+		const auto existing = _topics[index];
+		if (!row.created_at) {
+			row.created_at = existing.created_at;
+		}
+		if (!row.updated_at) {
+			row.updated_at = now;
+		}
+		_topics[index] = row;
 		return;
 	}
-	_topicIndex.emplace(key, _topics.size());
-	_topics.push_back(entry);
+	if (!row.created_at) {
+		row.created_at = now;
+	}
+	if (!row.updated_at) {
+		row.updated_at = now;
+	}
+	_topicByKey.emplace(key, _topics.size());
+	_topics.push_back(row);
 }
 
 void Store::rememberArchive(const TodoArchive &entry) {
-	const auto i = _archiveIndex.find(entry.archive_id);
-	if (i != _archiveIndex.end()) {
-		_archives[i->second] = entry;
+	auto row = entry;
+	const auto now = QDateTime::currentSecsSinceEpoch();
+
+	if (const auto i = _archiveByKey.find(archiveKey(row));
+		i != _archiveByKey.end()) {
+		// UNIQUE(peer_id, msg_id, receiver_id): updated in place.
+		const auto index = i->second;
+		const auto existing = _archives[index];
+		if (!row.archive_id) {
+			row.archive_id = existing.archive_id;
+		}
+		if (!row.created_at) {
+			row.created_at = existing.created_at;
+		}
+		_archives[index] = row;
+		rebuildArchiveIndexes();
 		return;
 	}
-	_archiveIndex.emplace(entry.archive_id, _archives.size());
-	_archives.push_back(entry);
+
+	if (!row.archive_id) {
+		row.archive_id = NextArchiveId(_archives);
+	} else if (const auto j = _archiveById.find(row.archive_id);
+		j != _archiveById.end()) {
+		_archives.erase(_archives.begin() + std::ptrdiff_t(j->second));
+	}
+	if (!row.created_at) {
+		row.created_at = now;
+	}
+	_archives.push_back(row);
+	rebuildArchiveIndexes();
 }
 
 void Store::rememberTranslation(const TranslationEntry &entry) {
-	const auto key = TranslationKey{ entry.input, entry.lg_to };
-	const auto i = _translationIndex.find(key);
-	if (i != _translationIndex.end()) {
-		_translations[i->second] = entry;
+	auto row = entry;
+	if (!row.created_at) {
+		row.created_at = QDateTime::currentSecsSinceEpoch();
+	}
+	const auto key = TranslationKey{ row.input, row.lg_to };
+	if (const auto i = _translationByKey.find(key);
+		i != _translationByKey.end()) {
+		_translations[i->second] = row;
 		return;
 	}
-	_translationIndex.emplace(key, _translations.size());
-	_translations.push_back(entry);
+	_translationByKey.emplace(key, _translations.size());
+	_translations.push_back(row);
 }
 
 bool Store::upsertTodo(const TodoEntry &entry) {
-	if (!entry.id) {
-		return false;
-	}
 	rememberTodo(entry);
 	touch();
 	return true;
 }
 
 bool Store::removeTodo(qint64 id) {
-	const auto i = _todoIndex.find(id);
-	if (i == _todoIndex.end()) {
+	const auto i = _todoById.find(id);
+	if (i == _todoById.end()) {
 		return false;
 	}
 	_todos.erase(_todos.begin() + std::ptrdiff_t(i->second));
-	_todoIndex.clear();
-	for (auto j = std::size_t(0); j != _todos.size(); ++j) {
-		_todoIndex.emplace(_todos[j].id, j);
-	}
+	rebuildTodoIndexes();
 	touch();
 	return true;
 }
 
 std::optional<TodoEntry> Store::todo(qint64 id) const {
-	const auto i = _todoIndex.find(id);
-	if (i == _todoIndex.end()) {
+	const auto i = _todoById.find(id);
+	if (i == _todoById.end()) {
 		return std::nullopt;
 	}
 	return _todos[i->second];
@@ -516,16 +649,18 @@ const std::vector<TodoEntry> &Store::todos() const {
 }
 
 bool Store::setTodoState(qint64 id, int state) {
-	if (state != kTodoStatePending
-		&& state != kTodoStateDone
-		&& state != kTodoStateArchived) {
+	if (state != kTodoStatusPending
+		&& state != kTodoStatusDone
+		&& state != kTodoStatusArchived) {
 		return false;
 	}
-	const auto i = _todoIndex.find(id);
-	if (i == _todoIndex.end()) {
+	const auto i = _todoById.find(id);
+	if (i == _todoById.end()) {
 		return false;
 	}
-	_todos[i->second].state = state;
+	auto &row = _todos[i->second];
+	row.status = state;
+	row.updated_at = QDateTime::currentSecsSinceEpoch();
 	touch();
 	return true;
 }
@@ -540,19 +675,25 @@ bool Store::upsertTopic(const TodoTopic &entry) {
 }
 
 std::optional<TodoTopic> Store::topic(qint64 todoId, qint64 peerId) const {
-	const auto i = _topicIndex.find(TopicKey{ todoId, peerId });
-	if (i == _topicIndex.end()) {
+	// The column is TEXT and holds a peer id, so a caller that passes a
+	// number has to match the text form the row was written in.
+	const auto i = _topicByKey.find(
+		TopicKey{ todoId, QString::number(peerId) });
+	if (i == _topicByKey.end()) {
 		return std::nullopt;
 	}
 	return _topics[i->second];
 }
 
 bool Store::setTopicBlacklist(qint64 todoId, qint64 peerId, bool blacklist) {
-	const auto i = _topicIndex.find(TopicKey{ todoId, peerId });
-	if (i == _topicIndex.end()) {
+	const auto i = _topicByKey.find(
+		TopicKey{ todoId, QString::number(peerId) });
+	if (i == _topicByKey.end()) {
 		return false;
 	}
-	_topics[i->second].is_blacklist = blacklist;
+	auto &row = _topics[i->second];
+	row.is_blacklist = blacklist ? 1 : 0;
+	row.updated_at = QDateTime::currentSecsSinceEpoch();
 	touch();
 	return true;
 }
@@ -561,19 +702,27 @@ bool Store::setTopicTagGroup(
 		qint64 todoId,
 		qint64 peerId,
 		const QString &tag) {
-	const auto i = _topicIndex.find(TopicKey{ todoId, peerId });
-	if (i == _topicIndex.end()) {
+	const auto i = _topicByKey.find(
+		TopicKey{ todoId, QString::number(peerId) });
+	if (i == _topicByKey.end()) {
 		return false;
 	}
-	_topics[i->second].tag_group = tag;
+	auto ok = false;
+	const auto group = tag.toInt(&ok);
+	if (!ok) {
+		// tag_group is an INTEGER column; a caller that hands us a label
+		// cannot be stored in it, and silently writing zero would lose the
+		// difference between "no group" and "unusable value".
+		return false;
+	}
+	auto &row = _topics[i->second];
+	row.tag_group = group;
+	row.updated_at = QDateTime::currentSecsSinceEpoch();
 	touch();
 	return true;
 }
 
 bool Store::addArchive(const TodoArchive &entry) {
-	if (!entry.archive_id) {
-		return false;
-	}
 	rememberArchive(entry);
 	touch();
 	return true;
@@ -586,8 +735,8 @@ const std::vector<TodoArchive> &Store::archives() const {
 std::optional<QString> Store::translation(
 		const QString &input,
 		const QString &lgTo) const {
-	const auto i = _translationIndex.find(TranslationKey{ input, lgTo });
-	if (i == _translationIndex.end()) {
+	const auto i = _translationByKey.find(TranslationKey{ input, lgTo });
+	if (i == _translationByKey.end()) {
 		return std::nullopt;
 	}
 	return _translations[i->second].output;
@@ -597,12 +746,7 @@ void Store::putTranslation(const TranslationEntry &entry) {
 	if (entry.input.isEmpty() || entry.lg_to.isEmpty()) {
 		return;
 	}
-	auto copy = entry;
-	if (!copy.created_at) {
-		// An entry the caller did not stamp cannot ever be pruned otherwise.
-		copy.created_at = QDateTime::currentSecsSinceEpoch();
-	}
-	rememberTranslation(copy);
+	rememberTranslation(entry);
 	touch();
 }
 
@@ -631,9 +775,9 @@ int Store::pruneTranslation(qint64 olderThanSeconds) {
 		return 0;
 	}
 	_translations = std::move(kept);
-	_translationIndex.clear();
+	_translationByKey.clear();
 	for (auto i = std::size_t(0); i != _translations.size(); ++i) {
-		_translationIndex.emplace(
+		_translationByKey.emplace(
 			TranslationKey{ _translations[i].input, _translations[i].lg_to },
 			i);
 	}
