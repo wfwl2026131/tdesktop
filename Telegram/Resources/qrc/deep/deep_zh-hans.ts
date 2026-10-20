@@ -299,4 +299,278 @@
         <translation>工具栏</translation>
     </message>
 </context>
+<context>
+    <name>TodoPage</name>
+    <message>
+        <source>Title</source>
+        <translation>待办</translation>
+    </message>
+    <message>
+        <source>Pending</source>
+        <translation>待处理</translation>
+    </message>
+    <message>
+        <source>Done</source>
+        <translation>已完成</translation>
+    </message>
+    <message>
+        <source>Archived</source>
+        <translation>已归档</translation>
+    </message>
+    <message>
+        <source>Empty</source>
+        <translation>暂无待办</translation>
+    </message>
+    <message>
+        <source>New Client</source>
+        <translation>新客</translation>
+    </message>
+    <message>
+        <source>Topic</source>
+        <translation>话题</translation>
+    </message>
+    <message>
+        <source>Dispatcher</source>
+        <translation>调度</translation>
+    </message>
+    <message>
+        <source>Total</source>
+        <translation>累计</translation>
+    </message>
+    <message>
+        <source>Mark Read</source>
+        <translation>已读</translation>
+    </message>
+    <message>
+        <source>Complete</source>
+        <translation>完成</translation>
+    </message>
+    <message>
+        <source>Archive</source>
+        <translation>归档</translation>
+    </message>
+    <message>
+        <source>Peer</source>
+        <translation>会话</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <translation>消息</translation>
+    </message>
+    <message>
+        <source>Topic Message</source>
+        <translation>话题消息</translation>
+    </message>
+</context>
+<context>
+    <name>PortraitPage</name>
+    <message>
+        <source>Title</source>
+        <translation>客户画像</translation>
+    </message>
+    <message>
+        <source>No Clients</source>
+        <translation>暂无客户</translation>
+    </message>
+    <message>
+        <source>Choose Client</source>
+        <translation>选择一个客户</translation>
+    </message>
+    <message>
+        <source>No Portrait</source>
+        <translation>暂无画像</translation>
+    </message>
+    <message>
+        <source>Group Meta</source>
+        <translation>基本信息</translation>
+    </message>
+    <message>
+        <source>Group Identity</source>
+        <translation>身份</translation>
+    </message>
+    <message>
+        <source>Group Career</source>
+        <translation>职业</translation>
+    </message>
+    <message>
+        <source>Group Communication</source>
+        <translation>沟通</translation>
+    </message>
+    <message>
+        <source>Group Relation</source>
+        <translation>关系</translation>
+    </message>
+    <message>
+        <source>Group Remark</source>
+        <translation>备注</translation>
+    </message>
+    <message>
+        <source>Timeline</source>
+        <translation>画像变更时间线</translation>
+    </message>
+    <message>
+        <source>No Changes</source>
+        <translation>暂无变更记录</translation>
+    </message>
+    <message>
+        <source>Tags</source>
+        <translation>标签</translation>
+    </message>
+    <message>
+        <source>State</source>
+        <translation>状态</translation>
+    </message>
+    <message>
+        <source>Add Count</source>
+        <translation>新增</translation>
+    </message>
+    <message>
+        <source>Sent Count</source>
+        <translation>发送</translation>
+    </message>
+    <message>
+        <source>Recv Count</source>
+        <translation>接收</translation>
+    </message>
+    <message>
+        <source>Platform</source>
+        <translation>平台</translation>
+    </message>
+    <message>
+        <source>Key</source>
+        <translation>标识</translation>
+    </message>
+    <message>
+        <source>Inner Id</source>
+        <translation>内部 ID</translation>
+    </message>
+    <message>
+        <source>Thumbnail</source>
+        <translation>头像</translation>
+    </message>
+    <message>
+        <source>Worker Id</source>
+        <translation>坐席</translation>
+    </message>
+    <message>
+        <source>Username</source>
+        <translation>用户名</translation>
+    </message>
+    <message>
+        <source>Nickname</source>
+        <translation>昵称</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>姓名</translation>
+    </message>
+    <message>
+        <source>Gender</source>
+        <translation>性别</translation>
+    </message>
+    <message>
+        <source>Birthday</source>
+        <translation>生日</translation>
+    </message>
+    <message>
+        <source>Country</source>
+        <translation>国家</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>语言</translation>
+    </message>
+    <message>
+        <source>Phone</source>
+        <translation>手机</translation>
+    </message>
+    <message>
+        <source>Email</source>
+        <translation>邮箱</translation>
+    </message>
+    <message>
+        <source>Address</source>
+        <translation>地址</translation>
+    </message>
+    <message>
+        <source>Company</source>
+        <translation>公司</translation>
+    </message>
+    <message>
+        <source>Position</source>
+        <translation>职位</translation>
+    </message>
+    <message>
+        <source>Salary</source>
+        <translation>薪资</translation>
+    </message>
+    <message>
+        <source>Company Size</source>
+        <translation>公司规模</translation>
+    </message>
+    <message>
+        <source>Company Industry</source>
+        <translation>公司行业</translation>
+    </message>
+    <message>
+        <source>Total Messages</source>
+        <translation>消息总数</translation>
+    </message>
+    <message>
+        <source>Total Chars</source>
+        <translation>字符总数</translation>
+    </message>
+    <message>
+        <source>First Message At</source>
+        <translation>首次消息</translation>
+    </message>
+    <message>
+        <source>Last Message At</source>
+        <translation>最后消息</translation>
+    </message>
+    <message>
+        <source>Last Message Id</source>
+        <translation>最后消息 ID</translation>
+    </message>
+    <message>
+        <source>Created At</source>
+        <translation>创建时间</translation>
+    </message>
+    <message>
+        <source>Id</source>
+        <translation>ID</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation>类型</translation>
+    </message>
+    <message>
+        <source>Stage</source>
+        <translation>阶段</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>来源</translation>
+    </message>
+    <message>
+        <source>Team Id</source>
+        <translation>团队 ID</translation>
+    </message>
+    <message>
+        <source>Sys Id</source>
+        <translation>系统 ID</translation>
+    </message>
+    <message>
+        <source>User Ids</source>
+        <translation>用户 ID</translation>
+    </message>
+    <message>
+        <source>Chat Ids</source>
+        <translation>会话 ID</translation>
+    </message>
+    <message>
+        <source>Mark</source>
+        <translation>标记</translation>
+    </message>
+</context>
 </TS>

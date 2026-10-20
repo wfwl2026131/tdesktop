@@ -2393,6 +2393,8 @@ PRIVATE
     og/og_menu.h
     og/og_panel.cpp
     og/og_panel.h
+    og/og_portrait_page.cpp
+    og/og_portrait_page.h
     og/og_right_toolbar.cpp
     og/og_right_toolbar.h
     og/og_seat_bar.cpp
@@ -2401,6 +2403,8 @@ PRIVATE
     og/og_seat_grid.h
     og/og_store.cpp
     og/og_store.h
+    og/og_todo_page.cpp
+    og/og_todo_page.h
     og/og_tr.cpp
     og/og_tr.h
 )

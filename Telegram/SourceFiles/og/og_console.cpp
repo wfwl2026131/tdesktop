@@ -9,7 +9,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "og/og_console.h"
 
 #include "base/object_ptr.h"
+#include "og/og_portrait_page.h"
 #include "og/og_seat_grid.h"
+#include "og/og_todo_page.h"
 #include "og/og_tr.h"
 #include <rpl/producer.h>
 #include "settings/settings_common.h"
@@ -224,9 +226,26 @@ void ConsoleWindowQt::buildContent(
 			rpl::single(OG::Tr::Lookup(feature.name)),
 			st::mainMenuButton,
 			Settings::IconDescriptor{ .icon = feature.icon });
-		button->setClickedCallback([=, text = FeatureToast(feature)] {
-			_controller->window().showToast(text, kToastDuration);
-		});
+		const auto tech = QString::fromUtf8(feature.tech);
+		// Two rows already own a window of their own on the reference side,
+		// so their callbacks open it instead of reporting a placeholder.
+		// TODO: the final entry point of both pages (a right toolbar tab or a
+		// menu item) still waits for evidence from the reference client; this
+		// only makes the pages reachable. The other rows and the console
+		// layout stay exactly as they are.
+		if (tech == QString::fromLatin1("portrait")) {
+			button->setClickedCallback([=] {
+				OG::PortraitPageWindow::Show(_controller);
+			});
+		} else if (tech == QString::fromLatin1("todo_manager")) {
+			button->setClickedCallback([=] {
+				OG::TodoPageWindow::Show(_controller);
+			});
+		} else {
+			button->setClickedCallback([=, text = FeatureToast(feature)] {
+				_controller->window().showToast(text, kToastDuration);
+			});
+		}
 	}
 
 	AddKeyedLabel(rightRaw, kActionsKey);

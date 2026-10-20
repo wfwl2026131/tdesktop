@@ -1105,6 +1105,31 @@ bool Store::setTodoRead(
 	return true;
 }
 
+bool Store::applyTodoUpdate(
+		const QString &fromId,
+		const QString &peerId,
+		const QString &receiverId,
+		TodoStatus status,
+		int unreadCount) {
+	const auto i = _todoByKey.find(TodoKey{ fromId, peerId, receiverId });
+	if (i == _todoByKey.end()) {
+		return false;
+	}
+	auto &row = _todos[i->second];
+	// One statement writes four columns, exactly like the reference UPDATE,
+	// so a caller cannot leave the row between two writes.
+	row.status = static_cast<int>(status);
+	row.unread_count = unreadCount;
+	// Inferred: the reference writes is_new inside that same statement, but
+	// the value it passes for the "done" case is not covered by the evidence
+	// we have, so the formula of the insert and accumulation paths is used
+	// here again: new while nothing of this client was read.
+	row.is_new = (row.unread_count == row.from_count) ? 1 : 0;
+	row.updated_at = QDateTime::currentSecsSinceEpoch();
+	touch();
+	return true;
+}
+
 std::vector<TodoEntry> Store::todosByStatus(TodoStatus status) const {
 	const auto code = static_cast<int>(status);
 	auto result = std::vector<TodoEntry>();
@@ -1574,6 +1599,23 @@ bool Store::removeTagCategory(const QString &label) {
 	}
 	touch();
 	return true;
+}
+
+Store &StoreInstance() {
+	// Constructed on first use: the working directory is only known once
+	// Core::App() is up. Never destroyed on purpose - a static object would
+	// run its destructor after Qt and Core::App() are gone, and the write it
+	// does there would reach for a dead working directory. The 200ms save
+	// timer flushes every burst of a running session; a quit inside that
+	// window can lose the very last writes, which is the price of not
+	// touching the shutdown sequence in this milestone.
+	static auto instance = new Store();
+	static auto loaded = false;
+	if (!loaded) {
+		loaded = true;
+		instance->load();
+	}
+	return *instance;
 }
 
 } // namespace OG

@@ -309,6 +309,19 @@ public:
 		const QString &receiverId,
 		int unreadCount);
 
+	// The merged write of the reference "mark done / mark read" statement:
+	//   UPDATE from_todo_list SET status = ?, updated_at = ?, is_new = ?,
+	//   unread_count = ? WHERE from_id = ? AND peer_id = ? AND receiver_id = ?
+	// Four columns are written in one step, so a caller cannot leave the row
+	// in the state between two writes. unread_count is overwritten with the
+	// passed value, never accumulated. false means the key has no row.
+	bool applyTodoUpdate(
+		const QString &fromId,
+		const QString &peerId,
+		const QString &receiverId,
+		TodoStatus status,
+		int unreadCount);
+
 	// The list of one status, ordered like the reference query orders it:
 	// last_msg_at first, updated_at second, newest first both times.
 	[[nodiscard]] std::vector<TodoEntry> todosByStatus(TodoStatus status) const;
@@ -453,5 +466,18 @@ private:
 	std::vector<TagCategory> _tagCategories;
 	std::map<QString, std::size_t> _tagCategoryByLabel;
 };
+
+// The store of the process: the first call builds it and loads the document
+// once, every later call returns the same object. There is no namespace scope
+// object on purpose - Store::path() reads the working directory through
+// Core::App(), which does not exist yet while static objects are constructed.
+//
+// Main thread only, like every method of the class.
+//
+// The name is StoreInstance and not Store: a function called Store in this
+// namespace would hide the class name, and every "Store &" or "Store::" after
+// it would have to be spelled "class Store", which clang rejects outright
+// ("must use 'class' tag to refer to type 'Store' in this scope").
+[[nodiscard]] Store &StoreInstance();
 
 } // namespace OG
