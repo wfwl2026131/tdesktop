@@ -1613,7 +1613,9 @@ Store &StoreInstance() {
 	static auto loaded = false;
 	if (!loaded) {
 		loaded = true;
-		instance->load();
+		// A missing or unreadable file is not an error here: the store simply
+		// starts empty, which is also what a first run looks like.
+		(void)instance->load();
 	}
 	return *instance;
 }
