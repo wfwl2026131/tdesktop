@@ -160,7 +160,12 @@ void ClientPageWindow::setupContent() {
 	_host = new QWidget();
 	_grid = new QGridLayout(_host);
 	_grid->setContentsMargins(0, 0, 0, 0);
-	_grid->setHorizontalSpacing(kCellPadding);
+	// No column spacing on purpose: every cell already keeps kCellPadding
+	// pixels of its own width free on the right (the text is elided into
+	// width - kCellPadding), so the gap is there. Counting it twice needs
+	// 830 + 7 * 8 = 886 px, which is wider than the 866 px left once the
+	// vertical scroll bar is in, and the last column would be pushed out.
+	_grid->setHorizontalSpacing(0);
 	_grid->setVerticalSpacing(4);
 	_grid->setAlignment(Qt::AlignTop);
 	_scroll->setWidget(_host);
