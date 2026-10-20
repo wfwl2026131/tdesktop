@@ -160,11 +160,22 @@ void TodoPageWindow::rebuild() {
 
 	auto empty = false;
 	if (_status == TodoStatus::Archived) {
+		// Two groups on purpose: the todos archived through
+		// applyTodoUpdate (status 3, they stay in from_todo_list) and the
+		// rows of the archive table. The reference also inserts a row into
+		// from_todo_archive when it archives, and that write is not part of
+		// this milestone, so without the first group a row archived here
+		// would vanish from the interface completely.
+		const auto archived = StoreInstance().todosByStatus(
+			TodoStatus::Archived);
+		for (const auto &row : archived) {
+			addTodoRow(row);
+		}
 		const auto &rows = StoreInstance().archives();
-		empty = rows.empty();
 		for (const auto &row : rows) {
 			addArchiveRow(row);
 		}
+		empty = archived.empty() && rows.empty();
 	} else {
 		const auto rows = StoreInstance().todosByStatus(_status);
 		empty = rows.empty();
