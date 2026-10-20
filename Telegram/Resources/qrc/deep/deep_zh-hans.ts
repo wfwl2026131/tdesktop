@@ -573,4 +573,47 @@
         <translation>标记</translation>
     </message>
 </context>
+<context>
+    <name>ClientPage</name>
+    <message>
+        <source>Title</source>
+        <translation>客户</translation>
+    </message>
+    <message>
+        <source>Empty</source>
+        <translation>暂无客户</translation>
+    </message>
+    <message>
+        <source>Platform</source>
+        <translation>平台</translation>
+    </message>
+    <message>
+        <source>Username</source>
+        <translation>用户名</translation>
+    </message>
+    <message>
+        <source>Phone</source>
+        <translation>手机</translation>
+    </message>
+    <message>
+        <source>Nickname</source>
+        <translation>昵称</translation>
+    </message>
+    <message>
+        <source>State</source>
+        <translation>状态</translation>
+    </message>
+    <message>
+        <source>Sent Count</source>
+        <translation>发送数</translation>
+    </message>
+    <message>
+        <source>Recv Count</source>
+        <translation>接收数</translation>
+    </message>
+    <message>
+        <source>Add Count</source>
+        <translation>新增数</translation>
+    </message>
+</context>
 </TS>
