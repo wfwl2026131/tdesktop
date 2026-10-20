@@ -37,6 +37,31 @@ const auto kArchivesKey = "archives";
 const auto kTranslationsKey = "translations";
 const auto kNextTodoIdKey = "next_todo_id";
 const auto kNextArchiveIdKey = "next_archive_id";
+const auto kPortraitsKey = "portraits";
+const auto kClientsKey = "clients";
+const auto kPortraitLogsKey = "portrait_logs";
+const auto kTagsKey = "tags";
+const auto kTagCategoriesKey = "tag_categories";
+const auto kNextPortraitIdKey = "next_portrait_id";
+const auto kNextClientIdKey = "next_client_id";
+const auto kNextPortraitLogIdKey = "next_portrait_log_id";
+
+// load() reuses the same row mutators the callers use, and those mark the
+// document dirty. A read must not schedule a write, so the flag below tells
+// touch() to stay quiet for the whole load.
+class LoadingGuard {
+public:
+	explicit LoadingGuard(bool &loading) : _loading(loading) {
+		_loading = true;
+	}
+	~LoadingGuard() {
+		_loading = false;
+	}
+
+private:
+	bool &_loading;
+
+};
 
 [[nodiscard]] QString Key(const char *name) {
 	return QString::fromLatin1(name);
@@ -291,6 +316,246 @@ void Write(QJsonObject &object, const char *name, const QString &value) {
 	return result;
 }
 
+[[nodiscard]] QJsonObject Write(const Portrait &entry) {
+	auto result = QJsonObject();
+	Write(result, "inner_id", entry.inner_id);
+	Write(result, "platform", entry.platform);
+	Write(result, "key", entry.key);
+	Write(result, "worker_id", entry.worker_id);
+	Write(result, "stage", entry.stage);
+	Write(result, "source", entry.source);
+	Write(result, "id", entry.id);
+	Write(result, "type", entry.type);
+	Write(result, "username", entry.username);
+	Write(result, "nickname", entry.nickname);
+	Write(result, "phone", entry.phone);
+	Write(result, "name", entry.name);
+	Write(result, "thumbnail", entry.thumbnail);
+	Write(result, "gender", entry.gender);
+	Write(result, "birthday", entry.birthday);
+	Write(result, "address", entry.address);
+	Write(result, "email", entry.email);
+	Write(result, "position", entry.position);
+	Write(result, "salary", entry.salary);
+	Write(result, "company", entry.company);
+	Write(result, "company_size", entry.company_size);
+	Write(result, "company_industry", entry.company_industry);
+	Write(result, "mark", entry.mark);
+	Write(result, "tags", entry.tags);
+	Write(result, "country", entry.country);
+	Write(result, "lang", entry.lang);
+	Write(result, "user_ids", entry.user_ids);
+	Write(result, "chat_ids", entry.chat_ids);
+	Write(result, "total_msgs", entry.total_msgs);
+	Write(result, "total_chars", entry.total_chars);
+	Write(result, "team_id", entry.team_id);
+	Write(result, "first_msg_at", entry.first_msg_at);
+	Write(result, "last_msg_at", entry.last_msg_at);
+	Write(result, "last_msg_id", entry.last_msg_id);
+	Write(result, "created_at", entry.created_at);
+	Write(result, "sys_id", entry.sys_id);
+	Write(result, "reserve1", entry.reserve1);
+	Write(result, "reserve2", entry.reserve2);
+	Write(result, "reserve3", entry.reserve3);
+	Write(result, "reserve4", entry.reserve4);
+	Write(result, "reserve5", entry.reserve5);
+	Write(result, "reserve6", entry.reserve6);
+	Write(result, "reserve7", entry.reserve7);
+	Write(result, "reserve8", entry.reserve8);
+	return result;
+}
+
+[[nodiscard]] Portrait PortraitFromJson(const QJsonObject &object) {
+	auto result = Portrait();
+	result.inner_id = ReadInt64(object, "inner_id");
+	result.platform = ReadInt(object, "platform");
+	result.key = ReadString(object, "key");
+	result.worker_id = ReadString(object, "worker_id");
+	result.stage = ReadInt(object, "stage");
+	result.source = ReadInt(object, "source");
+	result.id = ReadInt64(object, "id");
+	result.type = ReadInt(object, "type");
+	result.username = ReadString(object, "username");
+	result.nickname = ReadString(object, "nickname");
+	result.phone = ReadString(object, "phone");
+	result.name = ReadString(object, "name");
+	result.thumbnail = ReadString(object, "thumbnail");
+	result.gender = ReadInt(object, "gender");
+	result.birthday = ReadInt(object, "birthday");
+	result.address = ReadString(object, "address");
+	result.email = ReadString(object, "email");
+	result.position = ReadString(object, "position");
+	result.salary = ReadString(object, "salary");
+	result.company = ReadString(object, "company");
+	result.company_size = ReadString(object, "company_size");
+	result.company_industry = ReadString(object, "company_industry");
+	result.mark = ReadString(object, "mark");
+	result.tags = ReadString(object, "tags");
+	result.country = ReadString(object, "country");
+	result.lang = ReadString(object, "lang");
+	result.user_ids = ReadString(object, "user_ids");
+	result.chat_ids = ReadString(object, "chat_ids");
+	result.total_msgs = ReadInt(object, "total_msgs");
+	result.total_chars = ReadInt(object, "total_chars");
+	result.team_id = ReadInt64(object, "team_id");
+	result.first_msg_at = ReadInt64(object, "first_msg_at");
+	result.last_msg_at = ReadInt64(object, "last_msg_at");
+	result.last_msg_id = ReadInt64(object, "last_msg_id");
+	result.created_at = ReadInt64(object, "created_at");
+	result.sys_id = ReadInt64(object, "sys_id");
+	result.reserve1 = ReadString(object, "reserve1");
+	result.reserve2 = ReadString(object, "reserve2");
+	result.reserve3 = ReadString(object, "reserve3");
+	result.reserve4 = ReadString(object, "reserve4");
+	result.reserve5 = ReadString(object, "reserve5");
+	result.reserve6 = ReadString(object, "reserve6");
+	result.reserve7 = ReadString(object, "reserve7");
+	result.reserve8 = ReadString(object, "reserve8");
+	return result;
+}
+
+[[nodiscard]] QJsonObject Write(const Client &entry) {
+	auto result = QJsonObject();
+	Write(result, "inner_id", entry.inner_id);
+	Write(result, "platform", entry.platform);
+	Write(result, "key", entry.key);
+	Write(result, "worker_id", entry.worker_id);
+	Write(result, "username", entry.username);
+	Write(result, "phone", entry.phone);
+	Write(result, "id", entry.id);
+	Write(result, "nickname", entry.nickname);
+	Write(result, "state", entry.state);
+	Write(result, "import_user_id", entry.import_user_id);
+	Write(result, "imported_at", entry.imported_at);
+	Write(result, "followed_at", entry.followed_at);
+	Write(result, "created_at", entry.created_at);
+	Write(result, "add_count", entry.add_count);
+	Write(result, "team_id", entry.team_id);
+	Write(result, "sent_count", entry.sent_count);
+	Write(result, "recv_count", entry.recv_count);
+	Write(result, "sys_id", entry.sys_id);
+	Write(result, "reserve1", entry.reserve1);
+	Write(result, "reserve2", entry.reserve2);
+	Write(result, "reserve3", entry.reserve3);
+	Write(result, "reserve4", entry.reserve4);
+	Write(result, "reserve6", entry.reserve6);
+	Write(result, "reserve7", entry.reserve7);
+	Write(result, "reserve8", entry.reserve8);
+	return result;
+}
+
+[[nodiscard]] Client ClientFromJson(const QJsonObject &object) {
+	auto result = Client();
+	result.inner_id = ReadInt64(object, "inner_id");
+	result.platform = ReadInt(object, "platform");
+	result.key = ReadString(object, "key");
+	result.worker_id = ReadString(object, "worker_id");
+	result.username = ReadString(object, "username");
+	result.phone = ReadString(object, "phone");
+	result.id = ReadString(object, "id");
+	result.nickname = ReadString(object, "nickname");
+	result.state = ReadInt(object, "state");
+	result.import_user_id = ReadInt64(object, "import_user_id");
+	result.imported_at = ReadInt64(object, "imported_at");
+	result.followed_at = ReadInt64(object, "followed_at");
+	result.created_at = ReadInt64(object, "created_at");
+	result.add_count = ReadInt(object, "add_count");
+	result.team_id = ReadInt64(object, "team_id");
+	result.sent_count = ReadInt(object, "sent_count");
+	result.recv_count = ReadInt(object, "recv_count");
+	result.sys_id = ReadInt64(object, "sys_id");
+	result.reserve1 = ReadString(object, "reserve1");
+	result.reserve2 = ReadString(object, "reserve2");
+	result.reserve3 = ReadString(object, "reserve3");
+	result.reserve4 = ReadString(object, "reserve4");
+	result.reserve6 = ReadString(object, "reserve6");
+	result.reserve7 = ReadString(object, "reserve7");
+	result.reserve8 = ReadString(object, "reserve8");
+	return result;
+}
+
+[[nodiscard]] QJsonObject Write(const PortraitLog &entry) {
+	auto result = QJsonObject();
+	Write(result, "log_id", entry.log_id);
+	Write(result, "platform", entry.platform);
+	Write(result, "key", entry.key);
+	Write(result, "key2", entry.key2);
+	Write(result, "inner_id", entry.inner_id);
+	Write(result, "change", entry.change);
+	Write(result, "user_id", entry.user_id);
+	Write(result, "team_id", entry.team_id);
+	Write(result, "worker_id", entry.worker_id);
+	Write(result, "sys_id", entry.sys_id);
+	Write(result, "created_at", entry.created_at);
+	return result;
+}
+
+[[nodiscard]] PortraitLog PortraitLogFromJson(const QJsonObject &object) {
+	auto result = PortraitLog();
+	result.log_id = ReadInt64(object, "log_id");
+	result.platform = ReadInt(object, "platform");
+	result.key = ReadString(object, "key");
+	result.key2 = ReadString(object, "key2");
+	result.inner_id = ReadInt64(object, "inner_id");
+	result.change = ReadString(object, "change");
+	result.user_id = ReadInt64(object, "user_id");
+	result.team_id = ReadInt64(object, "team_id");
+	result.worker_id = ReadString(object, "worker_id");
+	result.sys_id = ReadInt64(object, "sys_id");
+	result.created_at = ReadInt64(object, "created_at");
+	return result;
+}
+
+[[nodiscard]] QJsonObject Write(const Tag &entry) {
+	auto result = QJsonObject();
+	Write(result, "label", entry.label);
+	Write(result, "type", entry.type);
+	Write(result, "num", entry.num);
+	Write(result, "category", entry.category);
+	Write(result, "worker_id", entry.worker_id);
+	Write(result, "user_id", entry.user_id);
+	Write(result, "team_id", entry.team_id);
+	Write(result, "created_at", entry.created_at);
+	return result;
+}
+
+[[nodiscard]] Tag TagFromJson(const QJsonObject &object) {
+	auto result = Tag();
+	result.label = ReadString(object, "label");
+	result.type = ReadInt(object, "type");
+	result.num = ReadInt(object, "num");
+	result.category = ReadString(object, "category");
+	result.worker_id = ReadString(object, "worker_id");
+	result.user_id = ReadInt64(object, "user_id");
+	result.team_id = ReadInt64(object, "team_id");
+	result.created_at = ReadInt64(object, "created_at");
+	return result;
+}
+
+[[nodiscard]] QJsonObject Write(const TagCategory &entry) {
+	auto result = QJsonObject();
+	Write(result, "label", entry.label);
+	Write(result, "type", entry.type);
+	Write(result, "num", entry.num);
+	Write(result, "worker_id", entry.worker_id);
+	Write(result, "user_id", entry.user_id);
+	Write(result, "team_id", entry.team_id);
+	Write(result, "created_at", entry.created_at);
+	return result;
+}
+
+[[nodiscard]] TagCategory TagCategoryFromJson(const QJsonObject &object) {
+	auto result = TagCategory();
+	result.label = ReadString(object, "label");
+	result.type = ReadInt(object, "type");
+	result.num = ReadInt(object, "num");
+	result.worker_id = ReadString(object, "worker_id");
+	result.user_id = ReadInt64(object, "user_id");
+	result.team_id = ReadInt64(object, "team_id");
+	result.created_at = ReadInt64(object, "created_at");
+	return result;
+}
+
 } // namespace
 
 Store::Store() {
@@ -340,6 +605,7 @@ void Store::rebuildArchiveIndexes() {
 }
 
 bool Store::load() {
+	const auto loading = LoadingGuard(_loading);
 	_todos.clear();
 	_todoById.clear();
 	_todoByKey.clear();
@@ -350,9 +616,24 @@ bool Store::load() {
 	_archiveByKey.clear();
 	_translations.clear();
 	_translationByKey.clear();
+	_portraits.clear();
+	_portraitByInnerId.clear();
+	_portraitByKey.clear();
+	_clients.clear();
+	_clientByInnerId.clear();
+	_clientByKey.clear();
+	_portraitLogs.clear();
+	_portraitLogById.clear();
+	_tags.clear();
+	_tagByLabel.clear();
+	_tagCategories.clear();
+	_tagCategoryByLabel.clear();
 	_dirty = false;
 	_nextTodoId = 1;
 	_nextArchiveId = 1;
+	_nextPortraitId = 1;
+	_nextClientId = 1;
+	_nextPortraitLogId = 1;
 
 	auto file = QFile(_path);
 	if (!file.exists()) {
@@ -378,6 +659,11 @@ bool Store::load() {
 	// the same value the old max+1 allocation would have used.
 	_nextTodoId = std::max(ReadInt64(root, kNextTodoIdKey), qint64(1));
 	_nextArchiveId = std::max(ReadInt64(root, kNextArchiveIdKey), qint64(1));
+	_nextPortraitId = std::max(ReadInt64(root, kNextPortraitIdKey), qint64(1));
+	_nextClientId = std::max(ReadInt64(root, kNextClientIdKey), qint64(1));
+	_nextPortraitLogId = std::max(
+		ReadInt64(root, kNextPortraitLogIdKey),
+		qint64(1));
 
 	const auto todos = root.value(Key(kTodosKey)).toArray();
 	for (const auto &value : todos) {
@@ -414,6 +700,64 @@ bool Store::load() {
 		}
 		rememberTranslation(entry);
 	}
+
+	const auto portraits = root.value(Key(kPortraitsKey)).toArray();
+	for (const auto &value : portraits) {
+		const auto entry = PortraitFromJson(value.toObject());
+		if (entry.key.isEmpty() && entry.worker_id.isEmpty()) {
+			continue; // A profile without its identity key is not a row.
+		}
+		rememberPortraitRow(entry);
+	}
+
+	const auto clients = root.value(Key(kClientsKey)).toArray();
+	for (const auto &value : clients) {
+		const auto entry = ClientFromJson(value.toObject());
+		if (entry.username.isEmpty() && entry.phone.isEmpty()) {
+			continue;
+		}
+		rememberClientRow(entry);
+	}
+
+	const auto logs = root.value(Key(kPortraitLogsKey)).toArray();
+	for (const auto &value : logs) {
+		const auto entry = PortraitLogFromJson(value.toObject());
+		if (!entry.inner_id && entry.change.isEmpty()) {
+			continue; // A log with neither a subject nor a change is empty.
+		}
+		if (!entry.log_id) {
+			addPortraitLog(entry);
+			continue;
+		}
+		_nextPortraitLogId = std::max(_nextPortraitLogId, entry.log_id + 1);
+		if (const auto i = _portraitLogById.find(entry.log_id);
+			i != _portraitLogById.end()) {
+			_portraitLogs[i->second] = entry;
+		} else {
+			_portraitLogById.emplace(
+				entry.log_id,
+				_portraitLogs.size());
+			_portraitLogs.push_back(entry);
+		}
+	}
+
+	const auto tags = root.value(Key(kTagsKey)).toArray();
+	for (const auto &value : tags) {
+		const auto entry = TagFromJson(value.toObject());
+		if (entry.label.isEmpty()) {
+			continue;
+		}
+		rememberTag(entry);
+	}
+
+	const auto categories = root.value(Key(kTagCategoriesKey)).toArray();
+	for (const auto &value : categories) {
+		const auto entry = TagCategoryFromJson(value.toObject());
+		if (entry.label.isEmpty()) {
+			continue;
+		}
+		rememberTagCategory(entry);
+	}
 	return true;
 }
 
@@ -440,6 +784,9 @@ void Store::scheduleSave() {
 }
 
 void Store::touch() {
+	if (_loading) {
+		return;
+	}
 	if (!_dirty) {
 		_dirty = true;
 	}
@@ -479,10 +826,43 @@ void Store::writeToDisk() {
 	}
 	root.insert(Key(kTranslationsKey), translations);
 
+	auto portraits = QJsonArray();
+	for (const auto &entry : _portraits) {
+		portraits.append(Write(entry));
+	}
+	root.insert(Key(kPortraitsKey), portraits);
+
+	auto clients = QJsonArray();
+	for (const auto &entry : _clients) {
+		clients.append(Write(entry));
+	}
+	root.insert(Key(kClientsKey), clients);
+
+	auto logs = QJsonArray();
+	for (const auto &entry : _portraitLogs) {
+		logs.append(Write(entry));
+	}
+	root.insert(Key(kPortraitLogsKey), logs);
+
+	auto tags = QJsonArray();
+	for (const auto &entry : _tags) {
+		tags.append(Write(entry));
+	}
+	root.insert(Key(kTagsKey), tags);
+
+	auto categories = QJsonArray();
+	for (const auto &entry : _tagCategories) {
+		categories.append(Write(entry));
+	}
+	root.insert(Key(kTagCategoriesKey), categories);
+
 	// The watermarks are part of the document, not of the tables: they keep
 	// an id that a removed row used to occupy from being allocated again.
 	Write(root, kNextTodoIdKey, _nextTodoId);
 	Write(root, kNextArchiveIdKey, _nextArchiveId);
+	Write(root, kNextPortraitIdKey, _nextPortraitId);
+	Write(root, kNextClientIdKey, _nextClientId);
+	Write(root, kNextPortraitLogIdKey, _nextPortraitLogId);
 
 	const auto data = QJsonDocument(root).toJson(QJsonDocument::Indented);
 
@@ -549,6 +929,30 @@ void Store::rememberTodo(const TodoEntry &entry) {
 	rebuildTodoIndexes();
 }
 
+void Store::rememberTodoEvent(const TodoEntry &entry) {
+	auto row = entry;
+	const auto now = QDateTime::currentSecsSinceEpoch();
+	const auto i = _todoByKey.find(todoKey(row));
+	if (i == _todoByKey.end()) {
+		row.is_new = (row.unread_count == row.from_count) ? 1 : 0;
+		rememberTodo(row);
+		return;
+	}
+	const auto index = i->second;
+	const auto &existing = _todos[index];
+	row.id = existing.id;
+	row.created_at = existing.created_at ? existing.created_at : now;
+	// The reference adds both counters instead of replacing them, so two
+	// events of the same todo add up, and is_new drops to 0 as soon as the
+	// accumulated unread count no longer matches the accumulated total.
+	row.unread_count = existing.unread_count + entry.unread_count;
+	row.from_count = existing.from_count + entry.from_count;
+	row.is_new = (row.unread_count == row.from_count) ? 1 : 0;
+	row.updated_at = row.updated_at ? row.updated_at : now;
+	_todos[index] = row;
+	rebuildTodoIndexes();
+}
+
 void Store::rememberTopic(const TodoTopic &entry) {
 	auto row = entry;
 	const auto now = QDateTime::currentSecsSinceEpoch();
@@ -575,6 +979,11 @@ void Store::rememberTopic(const TodoTopic &entry) {
 	_topics.push_back(row);
 }
 
+// Known deviation: the reference inserts an archive row with a plain INSERT
+// and does not state ON CONFLICT, so a row that hits the unique key fails
+// there instead of being replaced. We replace it, which is the looser of the
+// two behaviours: a duplicate archive does not lose the call, and the row that
+// is kept is the newest one.
 void Store::rememberArchive(const TodoArchive &entry) {
 	auto row = entry;
 	const auto now = QDateTime::currentSecsSinceEpoch();
@@ -672,6 +1081,49 @@ bool Store::setTodoState(qint64 id, int state) {
 	return true;
 }
 
+void Store::upsertTodoEvent(const TodoEntry &entry) {
+	rememberTodoEvent(entry);
+	touch();
+}
+
+bool Store::setTodoRead(
+		const QString &fromId,
+		const QString &peerId,
+		const QString &receiverId,
+		int unreadCount) {
+	const auto i = _todoByKey.find(TodoKey{ fromId, peerId, receiverId });
+	if (i == _todoByKey.end()) {
+		return false;
+	}
+	auto &row = _todos[i->second];
+	// "Was read" is a separate UPDATE in the reference: the counter is
+	// overwritten by the value the caller computed, not accumulated.
+	row.unread_count = unreadCount;
+	row.is_new = (row.unread_count == row.from_count) ? 1 : 0;
+	row.updated_at = QDateTime::currentSecsSinceEpoch();
+	touch();
+	return true;
+}
+
+std::vector<TodoEntry> Store::todosByStatus(TodoStatus status) const {
+	const auto code = static_cast<int>(status);
+	auto result = std::vector<TodoEntry>();
+	for (const auto &row : _todos) {
+		if (row.status == code) {
+			result.push_back(row);
+		}
+	}
+	// The reference query orders by last_msg_at then updated_at, both
+	// descending; created_at is never part of the list order.
+	std::sort(result.begin(), result.end(), [](const auto &a, const auto &b) {
+		if (a.last_msg_at != b.last_msg_at) {
+			return a.last_msg_at > b.last_msg_at;
+		}
+		return a.updated_at > b.updated_at;
+	});
+	return result;
+}
+
 bool Store::upsertTopic(const TodoTopic &entry) {
 	if (!entry.todo_id) {
 		return false;
@@ -739,6 +1191,43 @@ const std::vector<TodoArchive> &Store::archives() const {
 	return _archives;
 }
 
+bool Store::setArchiveTopicMsgId(qint64 archiveId, qint64 topicMsgId) {
+	const auto i = _archiveById.find(archiveId);
+	if (i == _archiveById.end()) {
+		return false;
+	}
+	_archives[i->second].topic_msg_id = topicMsgId;
+	touch();
+	return true;
+}
+
+const TodoArchive *Store::findArchiveByTopicMsgId(qint64 topicMsgId) const {
+	if (!topicMsgId) {
+		return nullptr;
+	}
+	for (const auto &row : _archives) {
+		if (row.topic_msg_id == topicMsgId) {
+			return &row;
+		}
+	}
+	return nullptr;
+}
+
+qint64 Store::archiveTopicMsgId(
+		const QString &fromId,
+		const QString &peerId,
+		const QString &receiverId,
+		qint64 msgId) const {
+	const auto i = _archiveByKey.find(ArchiveKey{ peerId, msgId, receiverId });
+	if (i == _archiveByKey.end()) {
+		return 0;
+	}
+	const auto &row = _archives[i->second];
+	// The reference looks the row up by all four columns, so an archive of a
+	// different client under the same conversation and message is not it.
+	return (row.from_id == fromId) ? row.topic_msg_id : 0;
+}
+
 std::optional<QString> Store::translation(
 		const QString &input,
 		const QString &lgTo) const {
@@ -792,4 +1281,300 @@ int Store::pruneTranslation(qint64 olderThanSeconds) {
 	return removed;
 }
 
+Store::PortraitKey Store::portraitKey(const Portrait &entry) const {
+	return PortraitKey{ entry.platform, entry.key, entry.worker_id };
+}
+
+Store::ClientKey Store::clientKey(const Client &entry) const {
+	return ClientKey{ entry.platform, entry.username, entry.phone };
+}
+
+void Store::rebuildPortraitIndexes() {
+	_portraitByInnerId.clear();
+	_portraitByKey.clear();
+	for (auto i = std::size_t(0); i != _portraits.size(); ++i) {
+		_portraitByInnerId.emplace(_portraits[i].inner_id, i);
+		_portraitByKey.emplace(portraitKey(_portraits[i]), i);
+	}
+}
+
+void Store::rebuildClientIndexes() {
+	_clientByInnerId.clear();
+	_clientByKey.clear();
+	for (auto i = std::size_t(0); i != _clients.size(); ++i) {
+		_clientByInnerId.emplace(_clients[i].inner_id, i);
+		_clientByKey.emplace(clientKey(_clients[i]), i);
+	}
+}
+
+void Store::rememberPortraitRow(const Portrait &entry) {
+	auto row = entry;
+	const auto now = QDateTime::currentSecsSinceEpoch();
+
+	if (const auto i = _portraitByKey.find(portraitKey(row));
+		i != _portraitByKey.end()) {
+		// UNIQUE(platform, key, worker_id): updated in place, the primary key
+		// and the creation time the row already has are kept when unsent.
+		const auto index = i->second;
+		const auto existing = _portraits[index];
+		if (!row.inner_id) {
+			row.inner_id = existing.inner_id;
+		}
+		if (!row.created_at) {
+			row.created_at = existing.created_at;
+		}
+		_portraits[index] = row;
+		rebuildPortraitIndexes();
+		return;
+	}
+
+	if (!row.inner_id) {
+		row.inner_id = _nextPortraitId++;
+	} else {
+		_nextPortraitId = std::max(_nextPortraitId, row.inner_id + 1);
+		if (const auto j = _portraitByInnerId.find(row.inner_id);
+			j != _portraitByInnerId.end()) {
+			// INSERT OR REPLACE: this id already belongs to another key.
+			_portraits.erase(_portraits.begin() + std::ptrdiff_t(j->second));
+		}
+	}
+	if (!row.created_at) {
+		row.created_at = now;
+	}
+	_portraits.push_back(row);
+	rebuildPortraitIndexes();
+}
+
+void Store::rememberClientRow(const Client &entry) {
+	auto row = entry;
+	const auto now = QDateTime::currentSecsSinceEpoch();
+
+	if (const auto i = _clientByKey.find(clientKey(row));
+		i != _clientByKey.end()) {
+		// UNIQUE(platform, username, phone).
+		const auto index = i->second;
+		const auto existing = _clients[index];
+		if (!row.inner_id) {
+			row.inner_id = existing.inner_id;
+		}
+		if (!row.created_at) {
+			row.created_at = existing.created_at;
+		}
+		_clients[index] = row;
+		rebuildClientIndexes();
+		return;
+	}
+
+	if (!row.inner_id) {
+		row.inner_id = _nextClientId++;
+	} else {
+		_nextClientId = std::max(_nextClientId, row.inner_id + 1);
+		if (const auto j = _clientByInnerId.find(row.inner_id);
+			j != _clientByInnerId.end()) {
+			_clients.erase(_clients.begin() + std::ptrdiff_t(j->second));
+		}
+	}
+	if (!row.created_at) {
+		row.created_at = now;
+	}
+	_clients.push_back(row);
+	rebuildClientIndexes();
+}
+
+const std::vector<Portrait> &Store::portraits() const {
+	return _portraits;
+}
+
+std::optional<Portrait> Store::portrait(qint64 innerId) const {
+	const auto i = _portraitByInnerId.find(innerId);
+	if (i == _portraitByInnerId.end()) {
+		return std::nullopt;
+	}
+	return _portraits[i->second];
+}
+
+void Store::rememberPortrait(const Portrait &entry) {
+	rememberPortraitRow(entry);
+	touch();
+}
+
+bool Store::removePortrait(qint64 innerId) {
+	const auto i = _portraitByInnerId.find(innerId);
+	if (i == _portraitByInnerId.end()) {
+		return false;
+	}
+	_portraits.erase(_portraits.begin() + std::ptrdiff_t(i->second));
+	rebuildPortraitIndexes();
+	touch();
+	return true;
+}
+
+const std::vector<Client> &Store::clients() const {
+	return _clients;
+}
+
+std::optional<Client> Store::client(qint64 innerId) const {
+	const auto i = _clientByInnerId.find(innerId);
+	if (i == _clientByInnerId.end()) {
+		return std::nullopt;
+	}
+	return _clients[i->second];
+}
+
+void Store::rememberClient(const Client &entry) {
+	rememberClientRow(entry);
+	touch();
+}
+
+bool Store::removeClient(qint64 innerId) {
+	const auto i = _clientByInnerId.find(innerId);
+	if (i == _clientByInnerId.end()) {
+		return false;
+	}
+	_clients.erase(_clients.begin() + std::ptrdiff_t(i->second));
+	rebuildClientIndexes();
+	touch();
+	return true;
+}
+
+const std::vector<PortraitLog> &Store::portraitLogs() const {
+	return _portraitLogs;
+}
+
+std::optional<PortraitLog> Store::portraitLog(qint64 logId) const {
+	const auto i = _portraitLogById.find(logId);
+	if (i == _portraitLogById.end()) {
+		return std::nullopt;
+	}
+	return _portraitLogs[i->second];
+}
+
+qint64 Store::addPortraitLog(const PortraitLog &entry) {
+	auto row = entry;
+	if (!row.log_id) {
+		row.log_id = _nextPortraitLogId++;
+	} else {
+		_nextPortraitLogId = std::max(_nextPortraitLogId, row.log_id + 1);
+		// The log has no unique key of its own: the same id is a replace.
+		if (const auto i = _portraitLogById.find(row.log_id);
+			i != _portraitLogById.end()) {
+			row.created_at = row.created_at
+				? row.created_at
+				: _portraitLogs[i->second].created_at;
+			_portraitLogs[i->second] = row;
+			touch();
+			return row.log_id;
+		}
+	}
+	if (!row.created_at) {
+		row.created_at = QDateTime::currentSecsSinceEpoch();
+	}
+	_portraitLogById.emplace(row.log_id, _portraitLogs.size());
+	_portraitLogs.push_back(row);
+	touch();
+	return row.log_id;
+}
+
+bool Store::removePortraitLog(qint64 logId) {
+	const auto i = _portraitLogById.find(logId);
+	if (i == _portraitLogById.end()) {
+		return false;
+	}
+	_portraitLogs.erase(_portraitLogs.begin() + std::ptrdiff_t(i->second));
+	_portraitLogById.clear();
+	for (auto k = std::size_t(0); k != _portraitLogs.size(); ++k) {
+		_portraitLogById.emplace(_portraitLogs[k].log_id, k);
+	}
+	touch();
+	return true;
+}
+
+const std::vector<Tag> &Store::tags() const {
+	return _tags;
+}
+
+const Tag *Store::tag(const QString &label) const {
+	const auto i = _tagByLabel.find(label);
+	return (i == _tagByLabel.end()) ? nullptr : &_tags[i->second];
+}
+
+void Store::rememberTag(const Tag &entry) {
+	if (entry.label.isEmpty()) {
+		return; // label is the primary key of this table.
+	}
+	auto row = entry;
+	if (!row.created_at) {
+		row.created_at = QDateTime::currentSecsSinceEpoch();
+	}
+	const auto i = _tagByLabel.find(row.label);
+	if (i != _tagByLabel.end()) {
+		_tags[i->second] = row;
+		touch();
+		return;
+	}
+	_tagByLabel.emplace(row.label, _tags.size());
+	_tags.push_back(row);
+	touch();
+}
+
+bool Store::removeTag(const QString &label) {
+	const auto i = _tagByLabel.find(label);
+	if (i == _tagByLabel.end()) {
+		return false;
+	}
+	_tags.erase(_tags.begin() + std::ptrdiff_t(i->second));
+	_tagByLabel.clear();
+	for (auto k = std::size_t(0); k != _tags.size(); ++k) {
+		_tagByLabel.emplace(_tags[k].label, k);
+	}
+	touch();
+	return true;
+}
+
+const std::vector<TagCategory> &Store::tagCategories() const {
+	return _tagCategories;
+}
+
+const TagCategory *Store::tagCategory(const QString &label) const {
+	const auto i = _tagCategoryByLabel.find(label);
+	return (i == _tagCategoryByLabel.end())
+		? nullptr
+		: &_tagCategories[i->second];
+}
+
+void Store::rememberTagCategory(const TagCategory &entry) {
+	if (entry.label.isEmpty()) {
+		return;
+	}
+	auto row = entry;
+	if (!row.created_at) {
+		row.created_at = QDateTime::currentSecsSinceEpoch();
+	}
+	const auto i = _tagCategoryByLabel.find(row.label);
+	if (i != _tagCategoryByLabel.end()) {
+		_tagCategories[i->second] = row;
+		touch();
+		return;
+	}
+	_tagCategoryByLabel.emplace(row.label, _tagCategories.size());
+	_tagCategories.push_back(row);
+	touch();
+}
+
+bool Store::removeTagCategory(const QString &label) {
+	const auto i = _tagCategoryByLabel.find(label);
+	if (i == _tagCategoryByLabel.end()) {
+		return false;
+	}
+	_tagCategories.erase(
+		_tagCategories.begin() + std::ptrdiff_t(i->second));
+	_tagCategoryByLabel.clear();
+	for (auto k = std::size_t(0); k != _tagCategories.size(); ++k) {
+		_tagCategoryByLabel.emplace(_tagCategories[k].label, k);
+	}
+	touch();
+	return true;
+}
+
 } // namespace OG
+
