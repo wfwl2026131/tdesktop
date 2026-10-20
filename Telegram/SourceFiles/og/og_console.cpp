@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/settings_common.h"
 #include "ui/qt_object_factory.h"
 #include "ui/rp_widget.h"
+#include "ui/toast/toast.h"
 #include "ui/vertical_list.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
@@ -37,6 +38,18 @@ namespace Deep {
 namespace {
 
 constexpr auto kToastDuration = 1500;
+
+// A toast opened through the controller is parented to the main window body,
+// where it stays invisible while this top-level window is the active one.
+// Show it on the console window itself: same API, explicit parent, default
+// placement, so it is centred in this window. Pages that toast follow the same
+// rule and pass their own instance as the parent.
+void ShowOwnToast(not_null<QWidget*> window, const QString &text) {
+	(void)Ui::Toast::Show(window, Ui::Toast::Config{
+		.text = TextWithEntities{ text },
+		.duration = kToastDuration,
+	});
+}
 
 // Keys only - every label goes through the Deep translation data below, so no
 // interface copy is compiled into the fork. English stays as the last
@@ -243,7 +256,7 @@ void ConsoleWindowQt::buildContent(
 			});
 		} else {
 			button->setClickedCallback([=, text = FeatureToast(feature)] {
-				_controller->window().showToast(text, kToastDuration);
+				ShowOwnToast(this, text);
 			});
 		}
 	}
@@ -259,9 +272,7 @@ void ConsoleWindowQt::buildContent(
 			st::defaultLightButton),
 		st::boxRowPadding);
 	start->setClickedCallback([=] {
-		_controller->window().showToast(
-			OG::Tr::Lookup(kStartKey),
-			kToastDuration);
+		ShowOwnToast(this, OG::Tr::Lookup(kStartKey));
 	});
 	const auto stop = rightRaw->add(
 		object_ptr<Ui::RoundButton>(
@@ -270,9 +281,7 @@ void ConsoleWindowQt::buildContent(
 			st::defaultLightButton),
 		st::boxRowPadding);
 	stop->setClickedCallback([=] {
-		_controller->window().showToast(
-			OG::Tr::Lookup(kStopKey),
-			kToastDuration);
+		ShowOwnToast(this, OG::Tr::Lookup(kStopKey));
 	});
 
 	Ui::AddSkip(content);
