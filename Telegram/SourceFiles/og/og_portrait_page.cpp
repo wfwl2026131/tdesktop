@@ -193,6 +193,7 @@ void PortraitPageWindow::rebuildClients() {
 			_clientHost);
 		label->setAlignment(Qt::AlignCenter);
 		_clientRows->addWidget(label);
+		_clientRows->addStretch(1);
 		return;
 	}
 
@@ -233,11 +234,18 @@ void PortraitPageWindow::rebuildClients() {
 		});
 		_clientRows->addWidget(button);
 	}
+	_clientRows->addStretch(1);
 }
 
 void PortraitPageWindow::showPortrait() {
 	ClearLayout(_details);
+	buildPortrait();
+	// The trailing stretch keeps the content at the top: without it the
+	// labels would share out the free height and the page would look sparse.
+	_details->addStretch(1);
+}
 
+void PortraitPageWindow::buildPortrait() {
 	if (!_selected) {
 		auto *label = new QLabel(
 			Tr::Lookup("PortraitPage::Choose Client"),

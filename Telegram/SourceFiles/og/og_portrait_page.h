@@ -51,6 +51,7 @@ private:
 	void setupContent();
 	void rebuildClients();
 	void showPortrait();
+	void buildPortrait();
 
 	void reject() override;
 

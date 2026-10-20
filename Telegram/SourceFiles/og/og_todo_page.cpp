@@ -178,6 +178,9 @@ void TodoPageWindow::rebuild() {
 		label->setAlignment(Qt::AlignCenter);
 		_rows->addWidget(label);
 	}
+	// The trailing stretch keeps the rows at the top: without it the labels
+	// would share out the free height and every row would look oversized.
+	_rows->addStretch(1);
 }
 
 void TodoPageWindow::addTodoRow(const TodoEntry &entry) {
