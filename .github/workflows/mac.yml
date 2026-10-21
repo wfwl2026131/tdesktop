@@ -118,7 +118,7 @@ jobs:
           -D CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
           -D TDESKTOP_API_ID=${{ secrets.TDESKTOP_API_ID }} \
           -D TDESKTOP_API_HASH=${{ secrets.TDESKTOP_API_HASH }} \
-          -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
+          -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON \
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF \
           $DEFINE
 
@@ -130,7 +130,12 @@ jobs:
           cd $REPO_NAME/out/Debug
           mkdir artifact
           mv Telegram.app artifact/
-          mv Updater artifact/
+          if [ -e Updater ]; then mv Updater artifact/; fi
+      - name: Assert the updater is not packaged.
+        run: |
+          cd $REPO_NAME/out/Debug
+          test ! -e Updater
+          test ! -e Telegram.app/Contents/Frameworks/Updater
       - uses: actions/upload-artifact@v7
         if: env.UPLOAD_ARTIFACT == 'true'
         name: Upload artifact.

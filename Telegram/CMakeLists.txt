@@ -3,6 +3,13 @@
 #
 # For license and copyright information please follow this link:
 # https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+# This fork must never run the official update channel: that feed answers with
+# upstream packages, and installing one replaces the fork with an official
+# build. Forcing the option here keeps it true for CI and for local builds
+# alike: the Updater target is not created, nothing copies it into the app, and
+# the client compiles the disabled checker.
+set(DESKTOP_APP_DISABLE_AUTOUPDATE ON CACHE BOOL
+    "Forced off in this fork: the official channel replaces the fork." FORCE)
 
 add_executable(Telegram WIN32 MACOSX_BUNDLE)
 init_non_host_target(Telegram)
