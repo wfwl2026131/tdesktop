@@ -5,16 +5,17 @@
 # https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 # This fork must never run the official update channel: that feed answers with
 # upstream packages, and installing one replaces the fork with an official
-# build. Forcing the option here keeps it true for CI and for local builds
-# alike: the Updater target is not created, nothing copies it into the app, and
-# the client compiles the disabled checker.
+# build. The default below keeps the channel closed without asking CI to
+# remember it: the Updater target is not created, nothing copies it into the
+# app, and the client compiles the disabled checker.
 #
-# Windows and macOS only: the Linux and canary configurations still ask for
-# the updater and package it themselves, so the option is left as they pass it.
+# The default is a default, not a lock: a build that passes
+# -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF keeps the updater, which is what the
+# canary Windows and macOS jobs and the Linux packages expect. Linux does not
+# enter this branch at all, so there the option stays exactly as they pass it.
 if (WIN32 OR APPLE)
-    set(DESKTOP_APP_DISABLE_AUTOUPDATE ON CACHE BOOL
-        "Forced off in this fork: the official channel replaces the fork."
-        FORCE)
+    option(DESKTOP_APP_DISABLE_AUTOUPDATE
+        "Keep the official auto-update channel disabled" ON)
 endif()
 
 add_executable(Telegram WIN32 MACOSX_BUNDLE)
