@@ -9,11 +9,18 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "base/required.h"
+#include "base/weak_ptr.h"
 
 #include <QtWidgets/QDialog>
 
 namespace Ui {
+
 class VerticalLayout;
+
+namespace Toast {
+class Instance;
+} // namespace Toast
+
 } // namespace Ui
 
 namespace Window {
@@ -55,6 +62,10 @@ private:
 	void reject() override;
 
 	const not_null<Window::SessionController*> _controller;
+
+	// Only one toast is meant to be on screen at a time, so the next one takes
+	// the previous one down first, the way the window-level helper does.
+	base::weak_ptr<Ui::Toast::Instance> _lastToast;
 };
 
 } // namespace Deep

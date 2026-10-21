@@ -43,9 +43,17 @@ constexpr auto kToastDuration = 1500;
 // where it stays invisible while this top-level window is the active one.
 // Show it on the console window itself: same API, explicit parent, default
 // placement, so it is centred in this window. Pages that toast follow the same
-// rule and pass their own instance as the parent.
-void ShowOwnToast(not_null<QWidget*> window, const QString &text) {
-	(void)Ui::Toast::Show(window, Ui::Toast::Config{
+// rule and pass their own instance as the parent. The weak pointer keeps only
+// one toast alive: the next one takes the previous one down first, the way the
+// window-level helper does, instead of stacking two identical rectangles.
+void ShowOwnToast(
+		not_null<QWidget*> window,
+		base::weak_ptr<Ui::Toast::Instance> &last,
+		const QString &text) {
+	if (const auto strong = last.get()) {
+		strong->hideAnimated();
+	}
+	last = Ui::Toast::Show(window, Ui::Toast::Config{
 		.text = TextWithEntities{ text },
 		.duration = kToastDuration,
 	});
@@ -256,7 +264,7 @@ void ConsoleWindowQt::buildContent(
 			});
 		} else {
 			button->setClickedCallback([=, text = FeatureToast(feature)] {
-				ShowOwnToast(this, text);
+				ShowOwnToast(this, _lastToast, text);
 			});
 		}
 	}
@@ -272,7 +280,7 @@ void ConsoleWindowQt::buildContent(
 			st::defaultLightButton),
 		st::boxRowPadding);
 	start->setClickedCallback([=] {
-		ShowOwnToast(this, OG::Tr::Lookup(kStartKey));
+		ShowOwnToast(this, _lastToast, OG::Tr::Lookup(kStartKey));
 	});
 	const auto stop = rightRaw->add(
 		object_ptr<Ui::RoundButton>(
@@ -281,7 +289,7 @@ void ConsoleWindowQt::buildContent(
 			st::defaultLightButton),
 		st::boxRowPadding);
 	stop->setClickedCallback([=] {
-		ShowOwnToast(this, OG::Tr::Lookup(kStopKey));
+		ShowOwnToast(this, _lastToast, OG::Tr::Lookup(kStopKey));
 	});
 
 	Ui::AddSkip(content);
