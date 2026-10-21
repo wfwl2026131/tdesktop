@@ -8,6 +8,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "og/og_autoreply.h"
+
 #include "base/timer.h"
 #include "base/weak_ptr.h"
 
@@ -380,6 +382,24 @@ public:
 	void rememberTagCategory(const TagCategory &entry);
 	bool removeTagCategory(const QString &label);
 
+	// The auto-reply rules in insertion order, which is also the priority
+	// order of the matcher: the first matching rule wins.
+	[[nodiscard]] const std::vector<AutoReplyRule> &autoReplyRules() const;
+	[[nodiscard]] const AutoReplyRule *autoReplyRule(qint64 id) const;
+
+	// Inserts the rule and returns the id the store assigned (0 when the
+	// keyword is empty, which the page never sends). The timestamps are set
+	// here, so a caller cannot write a rule that never happened.
+	qint64 addAutoReplyRule(const QString &keyword, const QString &reply);
+	bool updateAutoReplyRule(
+		qint64 id,
+		const QString &keyword,
+		const QString &reply);
+	bool removeAutoReplyRule(qint64 id);
+
+	[[nodiscard]] AutoReplySettings autoReplySettings() const;
+	void setAutoReplySettings(const AutoReplySettings &settings);
+
 private:
 	// The unique keys of the DDL, in column order.
 	using TodoKey = std::tuple<QString, QString, QString>; // from, peer, recv
@@ -432,6 +452,7 @@ private:
 	qint64 _nextPortraitId = 1;
 	qint64 _nextClientId = 1;
 	qint64 _nextPortraitLogId = 1;
+	qint64 _nextAutoReplyRuleId = 1;
 
 	base::Timer _saveTimer;
 
@@ -465,6 +486,10 @@ private:
 
 	std::vector<TagCategory> _tagCategories;
 	std::map<QString, std::size_t> _tagCategoryByLabel;
+
+	std::vector<AutoReplyRule> _autoReplyRules;
+	std::map<qint64, std::size_t> _autoReplyRuleById;
+	AutoReplySettings _autoReplySettings;
 };
 
 // The store of the process: the first call builds it and loads the document

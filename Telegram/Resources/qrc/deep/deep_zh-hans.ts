@@ -616,4 +616,51 @@
         <translation>新增数</translation>
     </message>
 </context>
+<context>
+    <name>AutoReplyPage</name>
+    <message>
+        <source>Title</source>
+        <translation>自动回复</translation>
+    </message>
+    <message>
+        <source>Enabled</source>
+        <translation>自动回复已启用</translation>
+    </message>
+    <message>
+        <source>Duplicate Cache</source>
+        <translation>去重缓存（秒）：</translation>
+    </message>
+    <message>
+        <source>Keyword</source>
+        <translation>关键词</translation>
+    </message>
+    <message>
+        <source>Reply Content</source>
+        <translation>回复内容</translation>
+    </message>
+    <message>
+        <source>Add Rule</source>
+        <translation>添加规则</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>删除</translation>
+    </message>
+    <message>
+        <source>Empty</source>
+        <translation>暂无规则</translation>
+    </message>
+    <message>
+        <source>Both Required</source>
+        <translation>关键词和回复内容都不能为空</translation>
+    </message>
+    <message>
+        <source>Added</source>
+        <translation>已添加规则：%1</translation>
+    </message>
+    <message>
+        <source>Deleted</source>
+        <translation>已删除规则：%1</translation>
+    </message>
+</context>
 </TS>

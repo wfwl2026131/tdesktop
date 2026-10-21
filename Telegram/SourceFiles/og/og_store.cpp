@@ -45,6 +45,14 @@ const auto kTagCategoriesKey = "tag_categories";
 const auto kNextPortraitIdKey = "next_portrait_id";
 const auto kNextClientIdKey = "next_client_id";
 const auto kNextPortraitLogIdKey = "next_portrait_log_id";
+const auto kAutoReplyRulesKey = "auto_reply_rules";
+const auto kNextAutoReplyRuleIdKey = "next_auto_reply_rule_id";
+
+// The settings area of the document: one object holding the global switches,
+// so a later page adds its key here instead of growing another top level.
+const auto kSettingsKey = "settings";
+const auto kAutoReplyEnabledKey = "auto_reply_enabled";
+const auto kAutoReplyDuplicateSecondsKey = "auto_reply_duplicate_seconds";
 
 // load() reuses the same row mutators the callers use, and those mark the
 // document dirty. A read must not schedule a write, so the flag below tells
@@ -556,6 +564,28 @@ void Write(QJsonObject &object, const char *name, const QString &value) {
 	return result;
 }
 
+[[nodiscard]] QJsonObject Write(const AutoReplyRule &entry) {
+	auto result = QJsonObject();
+	Write(result, "id", entry.id);
+	Write(result, "keyword", entry.keyword);
+	Write(result, "reply", entry.reply);
+	Write(result, "enabled", entry.enabled);
+	Write(result, "created_at", entry.created_at);
+	Write(result, "updated_at", entry.updated_at);
+	return result;
+}
+
+[[nodiscard]] AutoReplyRule AutoReplyRuleFromJson(const QJsonObject &object) {
+	auto result = AutoReplyRule();
+	result.id = ReadInt64(object, "id");
+	result.keyword = ReadString(object, "keyword");
+	result.reply = ReadString(object, "reply");
+	result.enabled = ReadInt(object, "enabled");
+	result.created_at = ReadInt64(object, "created_at");
+	result.updated_at = ReadInt64(object, "updated_at");
+	return result;
+}
+
 } // namespace
 
 Store::Store() {
@@ -628,12 +658,16 @@ bool Store::load() {
 	_tagByLabel.clear();
 	_tagCategories.clear();
 	_tagCategoryByLabel.clear();
+	_autoReplyRules.clear();
+	_autoReplyRuleById.clear();
+	_autoReplySettings = AutoReplySettings();
 	_dirty = false;
 	_nextTodoId = 1;
 	_nextArchiveId = 1;
 	_nextPortraitId = 1;
 	_nextClientId = 1;
 	_nextPortraitLogId = 1;
+	_nextAutoReplyRuleId = 1;
 
 	auto file = QFile(_path);
 	if (!file.exists()) {
@@ -664,6 +698,27 @@ bool Store::load() {
 	_nextPortraitLogId = std::max(
 		ReadInt64(root, kNextPortraitLogIdKey),
 		qint64(1));
+	_nextAutoReplyRuleId = std::max(
+		ReadInt64(root, kNextAutoReplyRuleIdKey),
+		qint64(1));
+
+	// The settings object did not exist before this milestone: a document
+	// without it reads back as the defaults, which is also what a first run
+	// looks like. A key that is missing keeps its default as well, so an older
+	// document cannot silently turn the feature off.
+	if (const auto settings = root.value(Key(kSettingsKey)).toObject();
+		!settings.isEmpty()) {
+		if (settings.contains(Key(kAutoReplyEnabledKey))) {
+			_autoReplySettings.enabled = ReadBool(
+				settings,
+				kAutoReplyEnabledKey);
+		}
+		if (settings.contains(Key(kAutoReplyDuplicateSecondsKey))) {
+			_autoReplySettings.duplicateSeconds = std::max(
+				ReadInt(settings, kAutoReplyDuplicateSecondsKey),
+				0);
+		}
+	}
 
 	const auto todos = root.value(Key(kTodosKey)).toArray();
 	for (const auto &value : todos) {
@@ -757,6 +812,17 @@ bool Store::load() {
 			continue;
 		}
 		rememberTagCategory(entry);
+	}
+
+	const auto rules = root.value(Key(kAutoReplyRulesKey)).toArray();
+	for (const auto &value : rules) {
+		const auto entry = AutoReplyRuleFromJson(value.toObject());
+		if (!entry.id || entry.keyword.isEmpty()) {
+			continue; // A rule without its id or keyword is not a rule.
+		}
+		_autoReplyRuleById.emplace(entry.id, _autoReplyRules.size());
+		_autoReplyRules.push_back(entry);
+		_nextAutoReplyRuleId = std::max(_nextAutoReplyRuleId, entry.id + 1);
 	}
 	return true;
 }
@@ -856,6 +922,20 @@ void Store::writeToDisk() {
 	}
 	root.insert(Key(kTagCategoriesKey), categories);
 
+	auto rules = QJsonArray();
+	for (const auto &entry : _autoReplyRules) {
+		rules.append(Write(entry));
+	}
+	root.insert(Key(kAutoReplyRulesKey), rules);
+
+	auto settings = QJsonObject();
+	Write(settings, kAutoReplyEnabledKey, _autoReplySettings.enabled);
+	Write(
+		settings,
+		kAutoReplyDuplicateSecondsKey,
+		_autoReplySettings.duplicateSeconds);
+	root.insert(Key(kSettingsKey), settings);
+
 	// The watermarks are part of the document, not of the tables: they keep
 	// an id that a removed row used to occupy from being allocated again.
 	Write(root, kNextTodoIdKey, _nextTodoId);
@@ -863,6 +943,7 @@ void Store::writeToDisk() {
 	Write(root, kNextPortraitIdKey, _nextPortraitId);
 	Write(root, kNextClientIdKey, _nextClientId);
 	Write(root, kNextPortraitLogIdKey, _nextPortraitLogId);
+	Write(root, kNextAutoReplyRuleIdKey, _nextAutoReplyRuleId);
 
 	const auto data = QJsonDocument(root).toJson(QJsonDocument::Indented);
 
@@ -1599,6 +1680,81 @@ bool Store::removeTagCategory(const QString &label) {
 	}
 	touch();
 	return true;
+}
+
+const std::vector<AutoReplyRule> &Store::autoReplyRules() const {
+	return _autoReplyRules;
+}
+
+const AutoReplyRule *Store::autoReplyRule(qint64 id) const {
+	const auto i = _autoReplyRuleById.find(id);
+	return (i == _autoReplyRuleById.end())
+		? nullptr
+		: &_autoReplyRules[i->second];
+}
+
+qint64 Store::addAutoReplyRule(
+		const QString &keyword,
+		const QString &reply) {
+	if (keyword.isEmpty()) {
+		return 0;
+	}
+	auto row = AutoReplyRule();
+	row.id = _nextAutoReplyRuleId++;
+	row.keyword = keyword;
+	row.reply = reply;
+	row.enabled = 1;
+	row.created_at = QDateTime::currentSecsSinceEpoch();
+	row.updated_at = row.created_at;
+	_autoReplyRuleById.emplace(row.id, _autoReplyRules.size());
+	_autoReplyRules.push_back(row);
+	touch();
+	return row.id;
+}
+
+bool Store::updateAutoReplyRule(
+		qint64 id,
+		const QString &keyword,
+		const QString &reply) {
+	const auto i = _autoReplyRuleById.find(id);
+	if (i == _autoReplyRuleById.end() || keyword.isEmpty()) {
+		return false;
+	}
+	auto &row = _autoReplyRules[i->second];
+	row.keyword = keyword;
+	row.reply = reply;
+	row.updated_at = QDateTime::currentSecsSinceEpoch();
+	touch();
+	return true;
+}
+
+bool Store::removeAutoReplyRule(qint64 id) {
+	const auto i = _autoReplyRuleById.find(id);
+	if (i == _autoReplyRuleById.end()) {
+		return false;
+	}
+	_autoReplyRules.erase(_autoReplyRules.begin() + std::ptrdiff_t(i->second));
+	_autoReplyRuleById.clear();
+	for (auto k = std::size_t(0); k != _autoReplyRules.size(); ++k) {
+		_autoReplyRuleById.emplace(_autoReplyRules[k].id, k);
+	}
+	touch();
+	return true;
+}
+
+AutoReplySettings Store::autoReplySettings() const {
+	return _autoReplySettings;
+}
+
+void Store::setAutoReplySettings(const AutoReplySettings &settings) {
+	// A negative window would mean "remember forever" to the cache, which is
+	// not what an empty or a misread field should mean: it becomes 0, the
+	// setting the page offers as "disabled".
+	_autoReplySettings.enabled = settings.enabled;
+	_autoReplySettings.duplicateSeconds = (settings.duplicateSeconds > 0)
+		? settings.duplicateSeconds
+		: 0;
+	touch();
 }
 
 Store &StoreInstance() {
