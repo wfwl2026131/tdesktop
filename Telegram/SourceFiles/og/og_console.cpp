@@ -21,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/vertical_list.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
+#include "ui/widgets/scroll_area.h"
 #include "ui/wrap/table_layout.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_controller.h"
@@ -31,7 +32,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_window.h"
 
 #include <QtCore/QPointer>
-#include <QtWidgets/QScrollArea>
 #include <QtWidgets/QVBoxLayout>
 
 namespace Deep {
@@ -189,18 +189,27 @@ void ConsoleWindowQt::reject() {
 }
 
 void ConsoleWindowQt::setupContent() {
-	const auto scroll = new QScrollArea(this);
-	scroll->setWidgetResizable(true);
-	scroll->setFrameShape(QFrame::NoFrame);
+	// Ui::VerticalLayout has no size hint at all: its height comes out of
+	// resizeGetHeight(), which only runs when a parent passes a width in. A
+	// bare QScrollArea with setWidgetResizable(true) sizes its content from
+	// sizeHint() instead, so the layout was squashed to the viewport, the rows
+	// past its bottom edge were clipped and the scroll range stayed zero.
+	// Ui::ScrollArea keeps the widget at the size the widget itself sets.
+	const auto scroll = Ui::CreateChild<Ui::ScrollArea>(this);
+
+	auto content = object_ptr<Ui::VerticalLayout>(scroll);
+	const auto contentRaw = content.data();
+	buildContent(contentRaw);
+
+	// The width is applied before the ownership moves into the scroll area:
+	// setWidget() resizes a widget that was never resized to its size hint,
+	// and this one only has a size once resizeToWidth() has run.
+	contentRaw->resizeToWidth(kWidth);
+	scroll->setOwnedWidget(std::move(content));
 
 	const auto layout = new QVBoxLayout(this);
 	layout->setContentsMargins(0, 0, 0, 0);
 	layout->addWidget(scroll);
-
-	const auto content = Ui::CreateChild<Ui::VerticalLayout>(scroll);
-	buildContent(content);
-	content->resizeToWidth(kWidth);
-	scroll->setWidget(content);
 }
 
 void ConsoleWindowQt::buildContent(
