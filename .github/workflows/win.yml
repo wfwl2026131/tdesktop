@@ -234,6 +234,9 @@ jobs:
 
           cmake --build ..\out --config Debug --parallel
 
+      - name: Assert the updater is not packaged.
+        run: |
+          if exist "%TBUILD%\%REPO_NAME%\out\Debug\Updater.exe" exit /b 1
       - name: Move artifact.
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
         run: |
@@ -241,9 +244,6 @@ jobs:
           mkdir artifact
           move %OUT%\Telegram.exe artifact/
           if exist %OUT%\Updater.exe move %OUT%\Updater.exe artifact/
-      - name: Assert the updater is not packaged.
-        run: |
-          if exist "%TBUILD%\%REPO_NAME%\out\Debug\Updater.exe" exit /b 1
       - uses: actions/upload-artifact@v7
         name: Upload artifact.
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')

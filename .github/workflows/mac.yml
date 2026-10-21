@@ -124,6 +124,11 @@ jobs:
 
           cmake --build ../out --config Debug --parallel
 
+      - name: Assert the updater is not packaged.
+        run: |
+          cd $REPO_NAME/out/Debug
+          test ! -e Updater
+          test ! -e Telegram.app/Contents/Frameworks/Updater
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
@@ -131,11 +136,6 @@ jobs:
           mkdir artifact
           mv Telegram.app artifact/
           if [ -e Updater ]; then mv Updater artifact/; fi
-      - name: Assert the updater is not packaged.
-        run: |
-          cd $REPO_NAME/out/Debug
-          test ! -e Updater
-          test ! -e Telegram.app/Contents/Frameworks/Updater
       - uses: actions/upload-artifact@v7
         if: env.UPLOAD_ARTIFACT == 'true'
         name: Upload artifact.

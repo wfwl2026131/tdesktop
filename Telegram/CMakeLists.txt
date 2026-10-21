@@ -8,8 +8,14 @@
 # build. Forcing the option here keeps it true for CI and for local builds
 # alike: the Updater target is not created, nothing copies it into the app, and
 # the client compiles the disabled checker.
-set(DESKTOP_APP_DISABLE_AUTOUPDATE ON CACHE BOOL
-    "Forced off in this fork: the official channel replaces the fork." FORCE)
+#
+# Windows and macOS only: the Linux and canary configurations still ask for
+# the updater and package it themselves, so the option is left as they pass it.
+if (WIN32 OR APPLE)
+    set(DESKTOP_APP_DISABLE_AUTOUPDATE ON CACHE BOOL
+        "Forced off in this fork: the official channel replaces the fork."
+        FORCE)
+endif()
 
 add_executable(Telegram WIN32 MACOSX_BUNDLE)
 init_non_host_target(Telegram)
