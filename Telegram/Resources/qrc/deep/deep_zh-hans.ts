@@ -624,7 +624,7 @@
     </message>
     <message>
         <source>Enabled</source>
-        <translation>自动回复已启用</translation>
+        <translation>启用自动回复</translation>
     </message>
     <message>
         <source>Duplicate Cache</source>

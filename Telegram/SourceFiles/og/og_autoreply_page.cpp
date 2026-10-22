@@ -156,9 +156,12 @@ void AutoReplyPageWindow::setupContent() {
 
 void AutoReplyPageWindow::rebuild() {
 	const auto settings = StoreInstance().autoReplySettings();
-	_enabled->setChecked(settings.enabled);
+	// Both setters are wrapped, the check box included: setChecked() emits
+	// toggled() when the state really changes, and that handler would save the
+	// settings before the spin box below has been given its stored value.
 	_enabled->blockSignals(true);
 	_duplicate->blockSignals(true);
+	_enabled->setChecked(settings.enabled);
 	_duplicate->setValue(settings.duplicateSeconds);
 	_duplicate->blockSignals(false);
 	_enabled->blockSignals(false);
