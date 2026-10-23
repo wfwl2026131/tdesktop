@@ -13,6 +13,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtWidgets/QDialog>
 
+#include <memory>
+
+namespace style {
+struct ScrollArea;
+} // namespace style
+
 namespace Ui {
 
 class VerticalLayout;
@@ -41,6 +47,9 @@ public:
 		QWidget *parent,
 		not_null<Window::SessionController*> controller);
 
+	// Defined in the source file, where the scroll area style is complete.
+	~ConsoleWindowQt() override;
+
 	// Shows the window and brings it to the front. Escape only hides it and the
 	// next call reuses the same instance; closing it (the title bar button or
 	// the Close button inside) destroys it and the call after that opens a
@@ -62,6 +71,10 @@ private:
 	void reject() override;
 
 	const not_null<Window::SessionController*> _controller;
+
+	// The scroll area keeps a reference to the style it was built with, so the
+	// window owns the copy instead of handing it a temporary.
+	const std::unique_ptr<style::ScrollArea> _scrollStyle;
 
 	// Only one toast is meant to be on screen at a time, so the next one takes
 	// the previous one down first, the way the window-level helper does.

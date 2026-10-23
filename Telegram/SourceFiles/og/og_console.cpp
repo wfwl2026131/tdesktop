@@ -140,7 +140,17 @@ ConsoleWindowQt::ConsoleWindowQt(
 	QWidget *parent,
 	not_null<Window::SessionController*> controller)
 : QDialog(parent)
-, _controller(controller) {
+, _controller(controller)
+, _scrollStyle([] {
+	auto result = std::make_unique<style::ScrollArea>(st::defaultScrollArea);
+	// The reference console keeps its bar on screen and never fades it out,
+	// while st::defaultScrollArea starts a hide timer after every scroll. A
+	// zero interval turns that timer off for this window only; the bar still
+	// hides itself whenever the content fits, which is what updateBar() does
+	// independently of the interval.
+	result->hiding = 0;
+	return result;
+}()) {
 	setWindowTitle(OG::Tr::Lookup(kTitleKey));
 	// The reference window cannot be resized and its title bar carries a single
 	// button, so the flags are spelled out: no context help question mark (a
@@ -155,6 +165,8 @@ ConsoleWindowQt::ConsoleWindowQt(
 	setFixedSize(kWidth, kHeight);
 	setupContent();
 }
+
+ConsoleWindowQt::~ConsoleWindowQt() = default;
 
 void ConsoleWindowQt::Show(
 		not_null<Window::SessionController*> controller) {
@@ -195,7 +207,7 @@ void ConsoleWindowQt::setupContent() {
 	// sizeHint() instead, so the layout was squashed to the viewport, the rows
 	// past its bottom edge were clipped and the scroll range stayed zero.
 	// Ui::ScrollArea keeps the widget at the size the widget itself sets.
-	const auto scroll = Ui::CreateChild<Ui::ScrollArea>(this);
+	const auto scroll = Ui::CreateChild<Ui::ScrollArea>(this, *_scrollStyle);
 
 	auto content = object_ptr<Ui::VerticalLayout>(scroll);
 	const auto contentRaw = content.data();
