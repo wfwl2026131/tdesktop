@@ -116,9 +116,12 @@ void PhonePageWindow::setupContent() {
 	_rangeEnd = new QSpinBox(this);
 	_rangeEnd->setRange(0, 999999999);
 	rangeLine->addWidget(_rangeEnd);
-	auto *refresh = new QPushButton(Tr::Lookup(
+	// Not named `refresh`: the member function is what the handlers call, and a
+	// local of that name shadows it, which the compiler reports as "called
+	// object type 'QPushButton *' is not a function".
+	auto *refreshButton = new QPushButton(Tr::Lookup(
 		"PhoneFilterPage::Refresh Output"), this);
-	rangeLine->addWidget(refresh);
+	rangeLine->addWidget(refreshButton);
 	rangeLine->addStretch(1);
 	layout->addLayout(rangeLine);
 
@@ -179,7 +182,7 @@ void PhonePageWindow::setupContent() {
 	layout->addWidget(_status);
 	layout->addStretch(1);
 
-	connect(refresh, &QPushButton::clicked, this, [this] {
+	connect(refreshButton, &QPushButton::clicked, this, [this] {
 		refresh();
 	});
 	connect(_callingCode, &QLineEdit::textChanged, this, [this] {
