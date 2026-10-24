@@ -138,7 +138,7 @@ QString WritePhoneFilterConfig(const PhoneFilterConfig &config) {
 		QJsonDocument(object).toJson(QJsonDocument::Indented));
 }
 
-void RunPhoneSelfCheck() {
+int RunPhoneSelfCheck() {
 	auto failures = 0;
 	const auto check = [&](const char *name, bool passed) {
 		if (!passed) {
