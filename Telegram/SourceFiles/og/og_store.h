@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "og/og_accounts.h"
+#include "og/og_video.h"
 #include "og/og_autoreply.h"
 
 #include "base/timer.h"
@@ -417,6 +418,13 @@ public:
 	[[nodiscard]] AutoReplySettings autoReplySettings() const;
 	void setAutoReplySettings(const AutoReplySettings &settings);
 
+	// The group video page keeps its three fields next to the other settings:
+	// an address, an interval and the ticked pool rows. The interval is stored
+	// under the reference's own key spelling, so a configuration moved from
+	// the reference still reads.
+	[[nodiscard]] VideoManageConfig videoManageSettings() const;
+	void setVideoManageSettings(const VideoManageConfig &settings);
+
 private:
 	// The unique keys of the DDL, in column order.
 	using TodoKey = std::tuple<QString, QString, QString>; // from, peer, recv
@@ -511,6 +519,8 @@ private:
 	std::vector<AutoReplyRule> _autoReplyRules;
 	std::map<qint64, std::size_t> _autoReplyRuleById;
 	AutoReplySettings _autoReplySettings;
+
+	VideoManageConfig _videoManageSettings;
 };
 
 // The store of the process: the first call builds it and loads the document

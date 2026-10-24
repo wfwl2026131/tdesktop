@@ -617,4 +617,47 @@
         <translation>已删除规则：%1</translation>
     </message>
 </context>
+<context>
+    <name>VideoManagePage</name>
+    <message>
+        <source>Title</source>
+        <translation type="unfinished">视频管理</translation>
+    </message>
+    <message>
+        <source>Group link or @username</source>
+        <translation type="unfinished">群组链接或 @用户名</translation>
+    </message>
+    <message>
+        <source>Interval (ms)</source>
+        <translation type="unfinished">间隔（毫秒）</translation>
+    </message>
+    <message>
+        <source>Active Accounts</source>
+        <translation type="unfinished">活跃账号</translation>
+    </message>
+    <message>
+        <source>Join</source>
+        <translation type="unfinished">加入</translation>
+    </message>
+    <message>
+        <source>Leave</source>
+        <translation type="unfinished">离开</translation>
+    </message>
+    <message>
+        <source>Task is running</source>
+        <translation type="unfinished">任务进行中</translation>
+    </message>
+    <message>
+        <source>Group link is required</source>
+        <translation type="unfinished">群组链接是必填项</translation>
+    </message>
+    <message>
+        <source>Please choose accounts</source>
+        <translation type="unfinished">请选择账号</translation>
+    </message>
+    <message>
+        <source>No accounts in the pool</source>
+        <translation type="unfinished">账号池为空</translation>
+    </message>
+</context>
 </TS>

@@ -2423,6 +2423,10 @@ PRIVATE
     og/og_seat_bar.h
     og/og_seat_grid.cpp
     og/og_seat_grid.h
+    og/og_video.cpp
+    og/og_video.h
+    og/og_video_page.cpp
+    og/og_video_page.h
     og/og_store.cpp
     og/og_store.h
     og/og_todo_page.cpp

@@ -55,6 +55,9 @@ const auto kNextAccountIdKey = "next_account_id";
 const auto kSettingsKey = "settings";
 const auto kAutoReplyEnabledKey = "auto_reply_enabled";
 const auto kAutoReplyDuplicateSecondsKey = "auto_reply_duplicate_seconds";
+const auto kVideoLinkKey = "video_link";
+const auto kVideoIntervalKey = "intervalMs"; // the reference's own spelling
+const auto kVideoAccountsKey = "video_accounts";
 
 // load() reuses the same row mutators the callers use, and those mark the
 // document dirty. A read must not schedule a write, so the flag below tells
@@ -741,6 +744,24 @@ bool Store::load() {
 				settings,
 				kAutoReplyEnabledKey);
 		}
+		if (settings.contains(Key(kVideoLinkKey))) {
+			_videoManageSettings.link = ReadString(settings, kVideoLinkKey);
+		}
+		if (settings.contains(Key(kVideoIntervalKey))) {
+			_videoManageSettings.intervalMs = std::max(
+				ReadInt(settings, kVideoIntervalKey),
+				0);
+		}
+		if (const auto accounts = settings.value(Key(kVideoAccountsKey))
+			.toArray();
+			!accounts.isEmpty()) {
+			for (const auto &value : accounts) {
+				const auto label = value.toString();
+				if (!label.isEmpty()) {
+					_videoManageSettings.accounts.append(label);
+				}
+			}
+		}
 		if (settings.contains(Key(kAutoReplyDuplicateSecondsKey))) {
 			_autoReplySettings.duplicateSeconds = std::max(
 				ReadInt(settings, kAutoReplyDuplicateSecondsKey),
@@ -980,6 +1001,13 @@ void Store::writeToDisk() {
 		settings,
 		kAutoReplyDuplicateSecondsKey,
 		_autoReplySettings.duplicateSeconds);
+	Write(settings, kVideoLinkKey, _videoManageSettings.link);
+	Write(settings, kVideoIntervalKey, _videoManageSettings.intervalMs);
+	auto videoAccounts = QJsonArray();
+	for (const auto &label : _videoManageSettings.accounts) {
+		videoAccounts.append(label);
+	}
+	settings.insert(Key(kVideoAccountsKey), videoAccounts);
 	root.insert(Key(kSettingsKey), settings);
 
 	// The watermarks are part of the document, not of the tables: they keep
@@ -1726,6 +1754,17 @@ bool Store::removeTagCategory(const QString &label) {
 	}
 	touch();
 	return true;
+}
+
+VideoManageConfig Store::videoManageSettings() const {
+	return _videoManageSettings;
+}
+
+void Store::setVideoManageSettings(const VideoManageConfig &settings) {
+	_videoManageSettings = settings;
+	_videoManageSettings.link = NormalizeGroupLink(settings.link);
+	_videoManageSettings.intervalMs = std::max(settings.intervalMs, 0);
+	touch();
 }
 
 const std::vector<AccountRow> &Store::accounts() const {

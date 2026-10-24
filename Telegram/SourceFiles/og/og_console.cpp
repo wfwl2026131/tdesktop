@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/object_ptr.h"
 #include "og/og_autoreply_page.h"
+#include "og/og_video_page.h"
 #include "og/og_tr.h"
 #include <rpl/producer.h>
 #include "ui/qt_object_factory.h"
@@ -95,9 +96,11 @@ constexpr const char *kNavKeys[] = {
 
 constexpr auto kNavCount = int(sizeof(kNavKeys) / sizeof(kNavKeys[0]));
 
-// The only entry that is already built: the auto-reply page of the previous
-// milestone. Everything else is a placeholder until its own ticket lands.
+// The entries that are built. Everything else is a placeholder until its own
+// ticket lands: the auto-reply page of the previous milestone, and the group
+// video page, which reads the account pool the store now keeps.
 constexpr auto kAutoReplyIndex = 6;
+constexpr auto kVideoIndex = 14;
 
 // Placeholder body of a navigation entry: the entry name and the one line that
 // says the feature is not built yet. No invented form and no fake buttons.
@@ -307,12 +310,17 @@ void ConsoleWindowQt::setupContent() {
 	const auto stack = new QStackedWidget(this);
 	stack->setFixedWidth(kStackWidth);
 	for (auto i = 0; i != kNavCount; ++i) {
-		stack->addWidget((i == kAutoReplyIndex)
-			? static_cast<QWidget*>(new OG::AutoReplyPageWindow(
-				stack,
-				_controller,
-				true))
-			: MakePlaceholderPage(stack, kNavKeys[i]));
+		// One page per entry: the two that exist are constructed here, the
+		// rest keep the placeholder until their own ticket lands.
+		auto page = static_cast<QWidget*>(nullptr);
+		if (i == kAutoReplyIndex) {
+			page = new OG::AutoReplyPageWindow(stack, _controller, true);
+		} else if (i == kVideoIndex) {
+			page = new OG::VideoPageWindow(stack, _controller, true);
+		} else {
+			page = MakePlaceholderPage(stack, kNavKeys[i]);
+		}
+		stack->addWidget(page);
 	}
 	layout->addWidget(stack);
 
