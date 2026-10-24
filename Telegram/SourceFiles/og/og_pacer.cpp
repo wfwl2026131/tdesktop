@@ -137,7 +137,7 @@ int RunPacerSelfCheck() {
 		pacer.waitFor(QString::fromLatin1("t1")) == 5000);
 
 	// 2. After the first claim the same account owes the account interval.
-	pacer.claim(QString::fromLatin1("t1"));
+	(void)pacer.claim(QString::fromLatin1("t1")); // pacing only
 	check("2 same account owes the account interval",
 		pacer.waitFor(QString::fromLatin1("t1")) == 10000);
 
@@ -157,7 +157,7 @@ int RunPacerSelfCheck() {
 	// 5. Two claims in a row on one account are priced at the account
 	// interval: a caller that forgets to wait cannot send for free.
 	auto twice = Pacer(oneSided);
-	twice.claim(QString::fromLatin1("t1"));
+	(void)twice.claim(QString::fromLatin1("t1")); // pacing only
 	const auto second = twice.waitFor(QString::fromLatin1("t1"));
 	check("5 back to back claim owes the interval", second == 3000);
 
@@ -167,7 +167,7 @@ int RunPacerSelfCheck() {
 	lanes.requestIntervalMs = 1000;
 	lanes.accountIntervalMs = 2000;
 	auto alternating = Pacer(lanes);
-	alternating.claim(QString::fromLatin1("t1"));
+	(void)alternating.claim(QString::fromLatin1("t1")); // pacing only
 	check("6 alternating accounts cost the pool interval",
 		alternating.waitFor(QString::fromLatin1("t2")) == 1000);
 
@@ -176,9 +176,9 @@ int RunPacerSelfCheck() {
 	capped.requestIntervalMs = 0;
 	capped.successCap = 2;
 	auto successCapped = Pacer(capped);
-	successCapped.claim(QString::fromLatin1("t1"));
+	(void)successCapped.claim(QString::fromLatin1("t1")); // pacing only
 	successCapped.recordSuccess();
-	successCapped.claim(QString::fromLatin1("t1"));
+	(void)successCapped.claim(QString::fromLatin1("t1")); // pacing only
 	successCapped.recordSuccess();
 	check("7 success cap ends the run",
 		successCapped.claim(QString::fromLatin1("t1"))
@@ -190,16 +190,16 @@ int RunPacerSelfCheck() {
 	execConfig.requestIntervalMs = 0;
 	execConfig.execCap = 3;
 	auto execCapped = Pacer(execConfig);
-	execCapped.claim(QString::fromLatin1("t1"));
-	execCapped.claim(QString::fromLatin1("t1"));
-	execCapped.claim(QString::fromLatin1("t1"));
+	(void)execCapped.claim(QString::fromLatin1("t1")); // pacing only
+	(void)execCapped.claim(QString::fromLatin1("t1")); // pacing only
+	(void)execCapped.claim(QString::fromLatin1("t1")); // pacing only
 	check("8 exec cap ends the run",
 		execCapped.claim(QString::fromLatin1("t1")) == PacerVerdict::RunOver);
 
 	// 9. A flood wait outlasts the configured interval: ten seconds is ten
 	// seconds even when the page asked for one.
 	auto flooded = Pacer(lanes);
-	flooded.claim(QString::fromLatin1("t1"));
+	(void)flooded.claim(QString::fromLatin1("t1")); // pacing only
 	flooded.recordFlood(QString::fromLatin1("t1"), 10);
 	check("9 flood wait wins over the interval",
 		flooded.waitFor(QString::fromLatin1("t1")) == 10000);
@@ -223,9 +223,9 @@ int RunPacerSelfCheck() {
 
 	// 13. The counters the page shows are the run's own.
 	auto counted = Pacer(lanes);
-	counted.claim(QString::fromLatin1("t1"));
+	(void)counted.claim(QString::fromLatin1("t1")); // pacing only
 	counted.recordSuccess();
-	counted.claim(QString::fromLatin1("t2"));
+	(void)counted.claim(QString::fromLatin1("t2")); // pacing only
 	check("13 counters follow the run",
 		counted.attempts() == 2
 		&& counted.successes() == 1
