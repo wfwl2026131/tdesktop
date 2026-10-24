@@ -660,4 +660,83 @@
         <translation type="unfinished">账号池为空</translation>
     </message>
 </context>
+<context>
+    <name>PhoneFilterPage</name>
+    <message>
+        <source>Filter Phone</source>
+        <translation type="unfinished">号码过滤</translation>
+    </message>
+    <message>
+        <source>Number Source</source>
+        <translation type="unfinished">号码来源</translation>
+    </message>
+    <message>
+        <source>Pick Country</source>
+        <translation type="unfinished">选择国家</translation>
+    </message>
+    <message>
+        <source>Calling code without +</source>
+        <translation type="unfinished">区号（不带 +）</translation>
+    </message>
+    <message>
+        <source>Range start (digits only)</source>
+        <translation type="unfinished">起始号段（仅数字）</translation>
+    </message>
+    <message>
+        <source>Range end (digits only)</source>
+        <translation type="unfinished">结束号段（仅数字）</translation>
+    </message>
+    <message>
+        <source>Refresh Output</source>
+        <translation type="unfinished">刷新输出</translation>
+    </message>
+    <message>
+        <source>Phone numbers preview will appear here</source>
+        <translation type="unfinished">号码预览将显示在这里</translation>
+    </message>
+    <message>
+        <source>Range size: %1</source>
+        <translation type="unfinished">号段大小：%1</translation>
+    </message>
+    <message>
+        <source>Valid: %1</source>
+        <translation type="unfinished">有效：%1</translation>
+    </message>
+    <message>
+        <source>Invalid: %1</source>
+        <translation type="unfinished">无效：%1</translation>
+    </message>
+    <message>
+        <source>Processed: %1 / %2</source>
+        <translation type="unfinished">已处理：%1 / %2</translation>
+    </message>
+    <message>
+        <source>Execution Settings</source>
+        <translation type="unfinished">执行设置</translation>
+    </message>
+    <message>
+        <source>Global interval (ms)</source>
+        <translation type="unfinished">全局间隔（毫秒）</translation>
+    </message>
+    <message>
+        <source>Single account interval (ms)</source>
+        <translation type="unfinished">单账号间隔（毫秒）</translation>
+    </message>
+    <message>
+        <source>Global interval throttles every request across all accounts. Single account interval is the minimum delay between requests from the same account.</source>
+        <translation type="unfinished">全局间隔限制所有账号的每次请求；单账号间隔是同一账号两次请求之间的最小延迟。</translation>
+    </message>
+    <message>
+        <source>Filter started</source>
+        <translation type="unfinished">开始过滤</translation>
+    </message>
+    <message>
+        <source>Country not selected</source>
+        <translation type="unfinished">未选择国家</translation>
+    </message>
+    <message>
+        <source>Range end must not be below the start</source>
+        <translation type="unfinished">结束号段不能小于起始号段</translation>
+    </message>
+</context>
 </TS>

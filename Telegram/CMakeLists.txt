@@ -2415,6 +2415,10 @@ PRIVATE
     og/og_menu.h
     og/og_pacer.cpp
     og/og_pacer.h
+    og/og_phone.cpp
+    og/og_phone.h
+    og/og_phone_page.cpp
+    og/og_phone_page.h
     og/og_panel.cpp
     og/og_panel.h
     og/og_portrait_page.cpp

@@ -58,6 +58,8 @@ const auto kAutoReplyDuplicateSecondsKey = "auto_reply_duplicate_seconds";
 const auto kVideoLinkKey = "video_link";
 const auto kVideoIntervalKey = "intervalMs"; // the reference's own spelling
 const auto kVideoAccountsKey = "video_accounts";
+const auto kPhoneGlobalIntervalKey = "globalInterval"; // the reference's key
+const auto kPhoneSingleIntervalKey = "singleInterval"; // the reference's key
 
 // load() reuses the same row mutators the callers use, and those mark the
 // document dirty. A read must not schedule a write, so the flag below tells
@@ -762,6 +764,16 @@ bool Store::load() {
 				}
 			}
 		}
+		if (settings.contains(Key(kPhoneGlobalIntervalKey))) {
+			_phoneFilterSettings.globalIntervalMs = std::max(
+				ReadInt(settings, kPhoneGlobalIntervalKey),
+				0);
+		}
+		if (settings.contains(Key(kPhoneSingleIntervalKey))) {
+			_phoneFilterSettings.singleIntervalMs = std::max(
+				ReadInt(settings, kPhoneSingleIntervalKey),
+				0);
+		}
 		if (settings.contains(Key(kAutoReplyDuplicateSecondsKey))) {
 			_autoReplySettings.duplicateSeconds = std::max(
 				ReadInt(settings, kAutoReplyDuplicateSecondsKey),
@@ -1008,6 +1020,14 @@ void Store::writeToDisk() {
 		videoAccounts.append(label);
 	}
 	settings.insert(Key(kVideoAccountsKey), videoAccounts);
+	Write(
+		settings,
+		kPhoneGlobalIntervalKey,
+		_phoneFilterSettings.globalIntervalMs);
+	Write(
+		settings,
+		kPhoneSingleIntervalKey,
+		_phoneFilterSettings.singleIntervalMs);
 	root.insert(Key(kSettingsKey), settings);
 
 	// The watermarks are part of the document, not of the tables: they keep
@@ -1764,6 +1784,20 @@ void Store::setVideoManageSettings(const VideoManageConfig &settings) {
 	_videoManageSettings = settings;
 	_videoManageSettings.link = NormalizeGroupLink(settings.link);
 	_videoManageSettings.intervalMs = std::max(settings.intervalMs, 0);
+	touch();
+}
+
+PhoneFilterConfig Store::phoneFilterSettings() const {
+	return _phoneFilterSettings;
+}
+
+void Store::setPhoneFilterSettings(const PhoneFilterConfig &settings) {
+	_phoneFilterSettings.globalIntervalMs = std::max(
+		settings.globalIntervalMs,
+		0);
+	_phoneFilterSettings.singleIntervalMs = std::max(
+		settings.singleIntervalMs,
+		0);
 	touch();
 }
 

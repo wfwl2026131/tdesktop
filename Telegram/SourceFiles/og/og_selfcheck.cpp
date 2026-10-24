@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "og/og_accounts.h"
 #include "og/og_pacer.h"
+#include "og/og_phone.h"
 #include "og/og_video.h"
 
 #include <QtCore/QString>
@@ -29,6 +30,7 @@ int RunAllSelfChecks() {
 	failures += RunAccountsSelfCheck();
 	failures += RunVideoSelfCheck();
 	failures += RunPacerSelfCheck();
+	failures += RunPhoneSelfCheck();
 
 	std::printf(
 		"=== og self checks: %d failure(s) ===\n",

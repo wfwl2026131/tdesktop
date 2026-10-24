@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "og/og_accounts.h"
+#include "og/og_phone.h"
 #include "og/og_video.h"
 #include "og/og_autoreply.h"
 
@@ -425,6 +426,12 @@ public:
 	[[nodiscard]] VideoManageConfig videoManageSettings() const;
 	void setVideoManageSettings(const VideoManageConfig &settings);
 
+	// The reference keeps the two gaps in filter_phone_config.json under
+	// globalInterval and singleInterval; they are stored under those same key
+	// spellings so a configuration moved from the reference still reads.
+	[[nodiscard]] PhoneFilterConfig phoneFilterSettings() const;
+	void setPhoneFilterSettings(const PhoneFilterConfig &settings);
+
 private:
 	// The unique keys of the DDL, in column order.
 	using TodoKey = std::tuple<QString, QString, QString>; // from, peer, recv
@@ -521,6 +528,8 @@ private:
 	AutoReplySettings _autoReplySettings;
 
 	VideoManageConfig _videoManageSettings;
+
+	PhoneFilterConfig _phoneFilterSettings;
 };
 
 // The store of the process: the first call builds it and loads the document

@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/object_ptr.h"
 #include "og/og_autoreply_page.h"
+#include "og/og_phone_page.h"
 #include "og/og_selfcheck.h"
 #include "og/og_video_page.h"
 #include "og/og_tr.h"
@@ -102,6 +103,7 @@ constexpr auto kNavCount = int(sizeof(kNavKeys) / sizeof(kNavKeys[0]));
 // video page, which reads the account pool the store now keeps.
 constexpr auto kAutoReplyIndex = 6;
 constexpr auto kVideoIndex = 14;
+constexpr auto kPhoneFilterIndex = 12;
 
 // Placeholder body of a navigation entry: the entry name and the one line that
 // says the feature is not built yet. No invented form and no fake buttons.
@@ -324,6 +326,8 @@ void ConsoleWindowQt::setupContent() {
 			page = new OG::AutoReplyPageWindow(stack, _controller, true);
 		} else if (i == kVideoIndex) {
 			page = new OG::VideoPageWindow(stack, _controller, true);
+		} else if (i == kPhoneFilterIndex) {
+			page = new OG::PhonePageWindow(stack, _controller, true);
 		} else {
 			page = MakePlaceholderPage(stack, kNavKeys[i]);
 		}
