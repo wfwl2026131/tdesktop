@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/object_ptr.h"
 #include "og/og_autoreply_page.h"
+#include "og/og_selfcheck.h"
 #include "og/og_video_page.h"
 #include "og/og_tr.h"
 #include <rpl/producer.h>
@@ -179,6 +180,12 @@ ConsoleWindowQt::ConsoleWindowQt(
 	return result;
 }())
 , _nav(std::make_unique<Nav>()) {
+	// The acceptance run of this fork is: launch with OG_SELFCHECK=1, open the
+	// console, read the terminal. The checks print and never block the window,
+	// so a normal launch (no variable) is untouched.
+	if (OG::SelfChecksRequested()) {
+		OG::RunAllSelfChecks();
+	}
 	setWindowTitle(OG::Tr::Lookup(kTitleKey));
 	// The reference window cannot be resized and its title bar carries a single
 	// button, so the flags are spelled out: no context help question mark (a

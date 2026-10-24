@@ -115,7 +115,7 @@ int Pacer::floods() const {
 	return _floods;
 }
 
-void RunPacerSelfCheck() {
+int RunPacerSelfCheck() {
 	auto failures = 0;
 	const auto check = [&](const char *name, bool passed) {
 		if (!passed) {
@@ -234,6 +234,7 @@ void RunPacerSelfCheck() {
 	std::printf(
 		"[og][pacer] %d failure(s)\n",
 		failures);
+	return failures;
 }
 
 } // namespace OG

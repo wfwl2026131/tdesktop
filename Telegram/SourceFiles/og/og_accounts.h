@@ -81,6 +81,6 @@ struct AccountRow {
 // Prints the pool's rules against a fixed set of rows. Not called from the
 // client: it is the driver the acceptance run builds, the same shape the
 // auto-reply matcher uses.
-void RunAccountsSelfCheck();
+int RunAccountsSelfCheck();
 
 } // namespace OG

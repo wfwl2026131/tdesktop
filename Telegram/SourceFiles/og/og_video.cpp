@@ -121,7 +121,7 @@ QStringList ResolveVideoAccounts(
 	return result;
 }
 
-void RunVideoSelfCheck() {
+int RunVideoSelfCheck() {
 	auto failures = 0;
 	const auto check = [&](const char *name, bool passed) {
 		if (!passed) {
@@ -220,6 +220,7 @@ void RunVideoSelfCheck() {
 	std::printf(
 		"[og][video] %d failure(s)\n",
 		failures);
+	return failures;
 }
 
 } // namespace OG

@@ -87,6 +87,6 @@ enum class VideoRequestIssue {
 
 // Prints the rules above against a fixed set of inputs. Not called from the
 // client: it is the driver the acceptance run builds.
-void RunVideoSelfCheck();
+int RunVideoSelfCheck();
 
 } // namespace OG

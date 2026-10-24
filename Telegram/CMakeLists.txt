@@ -2425,6 +2425,8 @@ PRIVATE
     og/og_seat_bar.h
     og/og_seat_grid.cpp
     og/og_seat_grid.h
+    og/og_selfcheck.cpp
+    og/og_selfcheck.h
     og/og_video.cpp
     og/og_video.h
     og/og_video_page.cpp

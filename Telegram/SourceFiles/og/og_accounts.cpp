@@ -119,7 +119,7 @@ bool PoolAccepts(
 	return true;
 }
 
-void RunAccountsSelfCheck() {
+int RunAccountsSelfCheck() {
 	auto failures = 0;
 	const auto check = [&](const char *name, bool passed) {
 		if (!passed) {
@@ -210,6 +210,7 @@ void RunAccountsSelfCheck() {
 	std::printf(
 		"[og][accounts] %d failure(s)\n",
 		failures);
+	return failures;
 }
 
 } // namespace OG

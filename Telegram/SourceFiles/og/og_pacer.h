@@ -95,6 +95,6 @@ private:
 
 // Prints the rules above against a fixed sequence. Not called from the client:
 // it is the driver the acceptance run builds.
-void RunPacerSelfCheck();
+int RunPacerSelfCheck();
 
 } // namespace OG
