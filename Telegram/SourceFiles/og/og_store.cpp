@@ -47,6 +47,8 @@ const auto kNextClientIdKey = "next_client_id";
 const auto kNextPortraitLogIdKey = "next_portrait_log_id";
 const auto kAutoReplyRulesKey = "auto_reply_rules";
 const auto kNextAutoReplyRuleIdKey = "next_auto_reply_rule_id";
+const auto kAccountsKey = "accounts";
+const auto kNextAccountIdKey = "next_account_id";
 
 // The settings area of the document: one object holding the global switches,
 // so a later page adds its key here instead of growing another top level.
@@ -575,6 +577,32 @@ void Write(QJsonObject &object, const char *name, const QString &value) {
 	return result;
 }
 
+[[nodiscard]] QJsonObject Write(const AccountRow &entry) {
+	auto result = QJsonObject();
+	Write(result, "id", entry.id);
+	Write(result, "label", entry.label);
+	Write(result, "phone", entry.phone);
+	Write(result, "session", entry.session);
+	Write(result, "status", entry.status);
+	Write(result, "kind", AccountKindToken(entry.kind));
+	Write(result, "added_at", entry.added_at);
+	Write(result, "last_seen", entry.last_seen);
+	return result;
+}
+
+[[nodiscard]] AccountRow AccountRowFromJson(const QJsonObject &object) {
+	auto result = AccountRow();
+	result.id = ReadInt64(object, "id");
+	result.label = ReadString(object, "label");
+	result.phone = ReadString(object, "phone");
+	result.session = ReadString(object, "session");
+	result.status = ReadString(object, "status");
+	result.kind = AccountKindFromToken(ReadString(object, "kind"));
+	result.added_at = ReadInt64(object, "added_at");
+	result.last_seen = ReadInt64(object, "last_seen");
+	return result;
+}
+
 [[nodiscard]] AutoReplyRule AutoReplyRuleFromJson(const QJsonObject &object) {
 	auto result = AutoReplyRule();
 	result.id = ReadInt64(object, "id");
@@ -814,6 +842,17 @@ bool Store::load() {
 		rememberTagCategory(entry);
 	}
 
+	const auto accounts = root.value(Key(kAccountsKey)).toArray();
+	for (const auto &value : accounts) {
+		const auto entry = AccountRowFromJson(value.toObject());
+		if (!entry.id || entry.label.isEmpty()) {
+			continue; // A row without its id or label is not a row.
+		}
+		_accountByLabel.emplace(entry.label, _accounts.size());
+		_accounts.push_back(entry);
+		_nextAccountId = std::max(_nextAccountId, entry.id + 1);
+	}
+
 	const auto rules = root.value(Key(kAutoReplyRulesKey)).toArray();
 	for (const auto &value : rules) {
 		const auto entry = AutoReplyRuleFromJson(value.toObject());
@@ -926,6 +965,13 @@ void Store::writeToDisk() {
 	for (const auto &entry : _autoReplyRules) {
 		rules.append(Write(entry));
 	}
+	auto accounts = QJsonArray();
+	for (const auto &entry : _accounts) {
+		accounts.append(Write(entry));
+	}
+	root.insert(Key(kAccountsKey), accounts);
+	Write(root, kNextAccountIdKey, _nextAccountId);
+
 	root.insert(Key(kAutoReplyRulesKey), rules);
 
 	auto settings = QJsonObject();
@@ -1680,6 +1726,111 @@ bool Store::removeTagCategory(const QString &label) {
 	}
 	touch();
 	return true;
+}
+
+const std::vector<AccountRow> &Store::accounts() const {
+	return _accounts;
+}
+
+const AccountRow *Store::accountByLabel(const QString &label) const {
+	const auto i = _accountByLabel.find(label);
+	return (i == _accountByLabel.end())
+		? nullptr
+		: &_accounts[i->second];
+}
+
+const AccountRow *Store::accountByPhone(const QString &phone) const {
+	const auto normalized = NormalizePhone(phone);
+	if (normalized.isEmpty()) {
+		return nullptr;
+	}
+	for (const auto &row : _accounts) {
+		if (NormalizePhone(row.phone) == normalized) {
+			return &row;
+		}
+	}
+	return nullptr;
+}
+
+qint64 Store::addAccount(const AccountRow &entry) {
+	auto row = entry;
+	row.label = NormalizeAccountLabel(row.label);
+	row.phone = NormalizePhone(row.phone);
+	if (!PoolAccepts(row, accountByLabel(row.label), accountByPhone(row.phone))) {
+		return 0;
+	}
+	row.id = _nextAccountId++;
+	row.status = AccountStatusToken(row.status);
+	row.added_at = QDateTime::currentSecsSinceEpoch();
+	_accountByLabel.emplace(row.label, _accounts.size());
+	_accounts.push_back(row);
+	touch();
+	return row.id;
+}
+
+bool Store::updateAccount(const AccountRow &entry) {
+	// The id is the handle, not the label: renaming a row is one of the things
+	// a rename page does, and a lookup by the new label would miss the row it
+	// is supposed to update.
+	const auto found = std::find_if(
+		_accounts.begin(),
+		_accounts.end(),
+		[&](const AccountRow &row) { return row.id == entry.id; });
+	if (found == _accounts.end()) {
+		return false;
+	}
+	auto row = entry;
+	row.label = NormalizeAccountLabel(row.label);
+	row.phone = NormalizePhone(row.phone);
+	row.status = AccountStatusToken(row.status);
+	row.added_at = found->added_at;
+	if (!PoolAccepts(row, accountByLabel(row.label), accountByPhone(row.phone))) {
+		return false;
+	}
+	const auto renamed = (row.label != found->label);
+	*found = row;
+	if (renamed) {
+		_accountByLabel.clear();
+		for (auto k = std::size_t(0); k != _accounts.size(); ++k) {
+			_accountByLabel.emplace(_accounts[k].label, k);
+		}
+	}
+	touch();
+	return true;
+}
+
+bool Store::removeAccount(const QString &label) {
+	const auto i = _accountByLabel.find(label);
+	if (i == _accountByLabel.end()) {
+		return false;
+	}
+	_accounts.erase(_accounts.begin() + std::ptrdiff_t(i->second));
+	_accountByLabel.clear();
+	for (auto k = std::size_t(0); k != _accounts.size(); ++k) {
+		_accountByLabel.emplace(_accounts[k].label, k);
+	}
+	touch();
+	return true;
+}
+
+void Store::setAccountStatus(const QString &label, const QString &status) {
+	const auto i = _accountByLabel.find(label);
+	if (i == _accountByLabel.end()) {
+		return;
+	}
+	auto &row = _accounts[i->second];
+	row.status = AccountStatusToken(status);
+	row.last_seen = QDateTime::currentSecsSinceEpoch();
+	touch();
+}
+
+void Store::setAccountKind(const QString &label, AccountKind kind) {
+	const auto i = _accountByLabel.find(label);
+	if (i == _accountByLabel.end()) {
+		return;
+	}
+	_accounts[i->second].kind = kind;
+	touch();
 }
 
 const std::vector<AutoReplyRule> &Store::autoReplyRules() const {

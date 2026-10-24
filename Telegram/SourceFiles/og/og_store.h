@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "og/og_accounts.h"
 #include "og/og_autoreply.h"
 
 #include "base/timer.h"
@@ -382,6 +383,22 @@ public:
 	void rememberTagCategory(const TagCategory &entry);
 	bool removeTagCategory(const QString &label);
 
+	// The account pool in insertion order: the order the operator imported
+	// the sessions in, which is also the order every page lists them in.
+	[[nodiscard]] const std::vector<AccountRow> &accounts() const;
+	[[nodiscard]] const AccountRow *accountByLabel(const QString &label) const;
+	[[nodiscard]] const AccountRow *accountByPhone(const QString &phone) const;
+
+	// Adds the row and returns the id the store assigned, or 0 when the pool
+	// refuses it (empty label or number, or a second row for either). The
+	// timestamps are set here so a caller cannot write a row that never
+	// happened.
+	qint64 addAccount(const AccountRow &entry);
+	bool updateAccount(const AccountRow &entry);
+	bool removeAccount(const QString &label);
+	void setAccountStatus(const QString &label, const QString &status);
+	void setAccountKind(const QString &label, AccountKind kind);
+
 	// The auto-reply rules in insertion order, which is also the priority
 	// order of the matcher: the first matching rule wins.
 	[[nodiscard]] const std::vector<AutoReplyRule> &autoReplyRules() const;
@@ -486,6 +503,10 @@ private:
 
 	std::vector<TagCategory> _tagCategories;
 	std::map<QString, std::size_t> _tagCategoryByLabel;
+
+	std::vector<AccountRow> _accounts;
+	std::map<QString, std::size_t> _accountByLabel;
+	qint64 _nextAccountId = 1;
 
 	std::vector<AutoReplyRule> _autoReplyRules;
 	std::map<qint64, std::size_t> _autoReplyRuleById;

@@ -2401,6 +2401,8 @@ nice_target_sources(Telegram ${src_loc}
 PRIVATE
     og/og_client_page.cpp
     og/og_client_page.h
+    og/og_accounts.cpp
+    og/og_accounts.h
     og/og_autoreply.cpp
     og/og_autoreply.h
     og/og_autoreply_page.cpp
