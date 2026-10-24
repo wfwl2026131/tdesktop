@@ -42,6 +42,10 @@ public:
 	static constexpr auto kWidth = 720;
 	static constexpr auto kHeight = 520;
 
+	// Escape hides instead of closing, the contract every page of this fork
+	// keeps: the half typed address survives and Show() brings it back.
+	void reject() override;
+
 private:
 	void setupContent();
 	void rebuild();
