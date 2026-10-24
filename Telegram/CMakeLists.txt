@@ -2413,6 +2413,8 @@ PRIVATE
     og/og_core.h
     og/og_menu.cpp
     og/og_menu.h
+    og/og_pacer.cpp
+    og/og_pacer.h
     og/og_panel.cpp
     og/og_panel.h
     og/og_portrait_page.cpp
